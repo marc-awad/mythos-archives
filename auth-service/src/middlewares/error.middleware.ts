@@ -1,20 +1,24 @@
 import { Request, Response, NextFunction } from "express"
 
-export const errorHandler = (
-  error: any,
+export const errorMiddleware = (
+  error: Error,
   req: Request,
   res: Response,
   next: NextFunction
-) => {
-  console.error("Error:", error)
+): void => {
+  console.error("❌ Error:", error.message)
 
-  const status = error.status || 500
-  const message = error.message || "Internal Server Error"
+  const statusCode =
+    error.message.includes("déjà utilisé") ||
+    error.message.includes("invalide") ||
+    error.message.includes("requis") ||
+    error.message.includes("au moins")
+      ? 400
+      : 500
 
-  res.status(status).json({
-    error: {
-      message,
-      status,
-    },
+  res.status(statusCode).json({
+    success: false,
+    message: error.message || "Une erreur est survenue",
+    error: process.env.NODE_ENV === "development" ? error.stack : undefined,
   })
 }

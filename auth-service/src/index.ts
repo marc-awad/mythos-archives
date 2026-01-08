@@ -1,33 +1,24 @@
-import express, { Application } from "express"
-import dotenv from "dotenv"
+import express from "express"
 import authRoutes from "./routes/auth.routes"
-import userRoutes from "./routes/user.routes"
-import { errorHandler } from "./middlewares/error.middleware"
+import { errorMiddleware } from "./middlewares/error.middleware"
 
-dotenv.config()
-
-const app: Application = express()
+const app = express()
 const PORT = process.env.PORT || 3001
 
 // Middlewares
 app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-
-// Routes
-app.use("/auth", authRoutes)
-app.use("/users", userRoutes)
-app.use("/admin", userRoutes)
 
 // Health check
 app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", service: "auth-service" })
+  res.json({ status: "ok", service: "auth-service" })
 })
 
-// Error handling
-app.use(errorHandler)
+// Routes
+app.use("/auth", authRoutes)
+
+// Error handling (doit être en dernier)
+app.use(errorMiddleware)
 
 app.listen(PORT, () => {
-  console.log(`Auth Service running on port ${PORT}`)
+  console.log(`🚀 Auth service running on port ${PORT}`)
 })
-
-export default app

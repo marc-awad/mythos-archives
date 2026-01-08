@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express"
 import { AuthService } from "../services/auth.services"
+import { RegisterDto } from "../types"
 
 export class AuthController {
   private authService: AuthService
@@ -8,28 +9,21 @@ export class AuthController {
     this.authService = new AuthService()
   }
 
-  register = async (req: Request, res: Response, next: NextFunction) => {
+  register = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      // TODO: Implémenter la logique
-      res.status(501).json({ message: "Not implemented yet" })
-    } catch (error) {
-      next(error)
-    }
-  }
+      const registerDto: RegisterDto = req.body
 
-  login = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      // TODO: Implémenter la logique
-      res.status(501).json({ message: "Not implemented yet" })
-    } catch (error) {
-      next(error)
-    }
-  }
+      const user = await this.authService.register(registerDto)
 
-  getMe = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      // TODO: Implémenter la logique
-      res.status(501).json({ message: "Not implemented yet" })
+      res.status(201).json({
+        success: true,
+        message: "Utilisateur créé avec succès",
+        data: user,
+      })
     } catch (error) {
       next(error)
     }

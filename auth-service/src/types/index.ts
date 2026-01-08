@@ -21,3 +21,19 @@ export interface CreateUserDTO {
 export interface UpdateUserRoleDTO {
   role: Role
 }
+
+export interface RegisterDto {
+  email: string
+  username: string
+  password: string
+}
+
+export interface UserResponse {
+  id: number
+  email: string
+  username: string
+  role: string
+  reputation: number
+  createdAt: Date
+}
+
