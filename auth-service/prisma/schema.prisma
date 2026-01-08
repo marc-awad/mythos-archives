@@ -12,13 +12,7 @@ model User {
   email      String   @unique
   username   String   @unique
   password   String
-  role       Role     @default(USER)
+  role       String   @default("USER") // SQLite n'a pas d'enum natif
   reputation Int      @default(0)
   createdAt  DateTime @default(now())
-}
-
-enum Role {
-  USER
-  EXPERT
-  ADMIN
 }
