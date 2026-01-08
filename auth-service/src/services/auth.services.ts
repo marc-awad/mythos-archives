@@ -1,7 +1,8 @@
 import bcrypt from "bcrypt"
 import userRepository from "../repositories/user.repository"
-import { RegisterDto, UserResponse } from "../types"
+import { RegisterDto, UserResponse, LoginDto } from "../types"
 import { User } from "@prisma/client"
+import { JwtUtils } from "../utils/jwt.utils"
 
 export class AuthService {
   private readonly SALT_ROUNDS = 10
@@ -56,6 +57,41 @@ export class AuthService {
 
     // Retourner l'utilisateur sans le mot de passe
     return this.formatUserResponse(user)
+  }
+
+  async login(
+    loginDto: LoginDto
+  ): Promise<{ token: string; user: UserResponse }> {
+    const { email, password } = loginDto
+
+    // Validation des champs requis
+    if (!email || !password) {
+      throw new Error("Email et mot de passe requis")
+    }
+
+    // Vérifier si l'utilisateur existe
+    const user = await userRepository.findByEmail(email)
+    if (!user) {
+      throw new Error("Email ou mot de passe incorrect")
+    }
+
+    // Vérifier le mot de passe
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) {
+      throw new Error("Email ou mot de passe incorrect")
+    }
+
+    // Générer le JWT
+    const token = JwtUtils.generateToken({
+      id: user.id,
+      role: user.role,
+    })
+
+    // Retourner le token et les infos user (sans le password)
+    return {
+      token,
+      user: this.formatUserResponse(user),
+    }
   }
 
   private formatUserResponse(user: User): UserResponse {
