@@ -128,13 +128,20 @@ export class TestimonyService {
   }
 
   /**
-   * Valider un témoignage (EXPERT/ADMIN)
+   * LORE-7: Valider un témoignage (EXPERT/ADMIN)
+   * - Vérifier que l'user n'est pas l'auteur
+   * - Mettre à jour le statut, validatedBy et validatedAt
    */
   async validateTestimony(
     id: string,
     validatedBy: string
   ): Promise<ITestimony> {
     const testimony = await this.getTestimonyById(id)
+
+    // Vérifier que l'utilisateur n'est pas l'auteur du témoignage
+    if (testimony.authorId === validatedBy) {
+      throw new Error("Vous ne pouvez pas valider votre propre témoignage")
+    }
 
     if (testimony.status !== TestimonyStatus.PENDING) {
       throw new Error("Seuls les témoignages en attente peuvent être validés")
@@ -154,10 +161,17 @@ export class TestimonyService {
   }
 
   /**
-   * Rejeter un témoignage (EXPERT/ADMIN)
+   * LORE-8: Rejeter un témoignage (EXPERT/ADMIN)
+   * - Vérifier que l'user n'est pas l'auteur
+   * - Mettre à jour le statut
    */
   async rejectTestimony(id: string, rejectedBy: string): Promise<ITestimony> {
     const testimony = await this.getTestimonyById(id)
+
+    // Vérifier que l'utilisateur n'est pas l'auteur du témoignage
+    if (testimony.authorId === rejectedBy) {
+      throw new Error("Vous ne pouvez pas rejeter votre propre témoignage")
+    }
 
     if (testimony.status !== TestimonyStatus.PENDING) {
       throw new Error("Seuls les témoignages en attente peuvent être rejetés")

@@ -229,8 +229,10 @@ export class TestimonyController {
   }
 
   /**
-   * PUT /testimonies/:id/validate
+   * LORE-7: PUT /testimonies/:id/validate
    * Valider un témoignage (EXPERT/ADMIN uniquement)
+   * - Vérifier que l'user n'est pas l'auteur
+   * - Mettre à jour le statut, validatedBy et validatedAt
    */
   async validateTestimony(
     req: Request,
@@ -283,6 +285,23 @@ export class TestimonyController {
           })
           return
         }
+
+        // LORE-7: Gestion de l'erreur "propre témoignage"
+        if (error.message.includes("propre témoignage")) {
+          res.status(403).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (error.message.includes("invalide")) {
+          res.status(400).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
       }
 
       next(error)
@@ -290,8 +309,10 @@ export class TestimonyController {
   }
 
   /**
-   * PUT /testimonies/:id/reject
+   * LORE-8: PUT /testimonies/:id/reject
    * Rejeter un témoignage (EXPERT/ADMIN uniquement)
+   * - Vérifier que l'user n'est pas l'auteur
+   * - Mettre à jour le statut
    */
   async rejectTestimony(
     req: Request,
@@ -335,6 +356,23 @@ export class TestimonyController {
         }
 
         if (error.message.includes("en attente")) {
+          res.status(400).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        // LORE-8: Gestion de l'erreur "propre témoignage"
+        if (error.message.includes("propre témoignage")) {
+          res.status(403).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (error.message.includes("invalide")) {
           res.status(400).json({
             success: false,
             message: error.message,
