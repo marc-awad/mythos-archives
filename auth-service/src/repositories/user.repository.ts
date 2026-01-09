@@ -53,6 +53,9 @@ export class UserRepository {
         reputation: true,
         createdAt: true,
       },
+      orderBy: {
+        createdAt: "desc",
+      },
     })
   }
 
@@ -61,6 +64,13 @@ export class UserRepository {
     return prisma.user.update({
       where: { id },
       data: { role },
+    })
+  }
+
+  // Supprimer un utilisateur
+  async delete(id: number): Promise<User> {
+    return prisma.user.delete({
+      where: { id },
     })
   }
 

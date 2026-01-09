@@ -1,5 +1,6 @@
 import express from "express"
 import authRoutes from "./routes/auth.routes"
+import userRoutes from "./routes/user.routes"
 import { errorMiddleware } from "./middlewares/error.middleware"
 
 const app = express()
@@ -15,6 +16,7 @@ app.get("/health", (req, res) => {
 
 // Routes
 app.use("/auth", authRoutes)
+app.use("/api", userRoutes)
 
 // Error handling (doit être en dernier)
 app.use(errorMiddleware)
