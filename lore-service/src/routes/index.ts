@@ -5,6 +5,7 @@ import {
   requireAdmin,
   optionalAuth,
 } from "../middlewares/auth.middleware"
+import creatureRoutes from "./creature.routes"
 
 const router = Router()
 
@@ -169,6 +170,8 @@ router.put(
     })
   }
 )
+
+router.use("/creatures", creatureRoutes)
 
 // ============================================
 // ROUTES À VENIR (décommentez quand prêt)

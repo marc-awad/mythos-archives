@@ -6,6 +6,7 @@ export interface ICreature extends Document {
   origin?: string
   legendScore: number
   createdAt: Date
+  updatedAt: Date
 }
 
 const creatureSchema = new Schema<ICreature>(
