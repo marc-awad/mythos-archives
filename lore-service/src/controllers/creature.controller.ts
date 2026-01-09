@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from "express"
 import creatureService from "../services/creature.service"
 import { CreateCreatureDto, GetCreaturesQuery } from "../types/creature.types"
+import testimonyService from "../services/testimony.service"
+import { TestimonyStatus } from "../types"
 
 export class CreatureController {
   /**
@@ -328,6 +330,95 @@ export class CreatureController {
           res.status(403).json({
             success: false,
             message: error.message,
+          })
+          return
+        }
+      }
+
+      next(error)
+    }
+  }
+  /**
+   * LORE-6: GET /creatures/:id/testimonies
+   * Récupérer tous les témoignages d'une créature
+   * Route publique avec filtre optionnel par statut
+   */
+  async getTestimoniesByCreature(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const { id } = req.params
+      const { status } = req.query
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: "ID de créature requis",
+        })
+        return
+      }
+
+      // Validation du statut si fourni
+      let testimonyStatus: TestimonyStatus | undefined
+
+      if (status) {
+        const upperStatus = (status as string).toUpperCase()
+
+        if (
+          !Object.values(TestimonyStatus).includes(
+            upperStatus as TestimonyStatus
+          )
+        ) {
+          res.status(400).json({
+            success: false,
+            message: `Statut invalide. Valeurs acceptées: ${Object.values(
+              TestimonyStatus
+            ).join(", ")}`,
+          })
+          return
+        }
+
+        testimonyStatus = upperStatus as TestimonyStatus
+      }
+
+      // Récupérer les témoignages
+      const testimonies = await testimonyService.getTestimoniesByCreature(
+        id,
+        testimonyStatus
+      )
+
+      res.status(200).json({
+        success: true,
+        message: "Témoignages récupérés avec succès",
+        data: testimonies.map((t) => ({
+          _id: t._id,
+          creatureId: t.creatureId,
+          authorId: t.authorId,
+          description: t.description,
+          status: t.status,
+          validatedBy: t.validatedBy,
+          validatedAt: t.validatedAt,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        })),
+        count: testimonies.length,
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Créature non trouvée") {
+          res.status(404).json({
+            success: false,
+            message: "Créature non trouvée",
+          })
+          return
+        }
+
+        if (error.message === "ID de créature invalide") {
+          res.status(400).json({
+            success: false,
+            message: "Format d'ID invalide",
           })
           return
         }
