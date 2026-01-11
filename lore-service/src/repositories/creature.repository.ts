@@ -79,10 +79,10 @@ export class CreatureRepository {
     if (options.sort) {
       switch (options.sort) {
         case "legendScore":
-          sortOption = { legendScore: 1, createdAt: -1 }
+          sortOption = { legendScore: -1, createdAt: -1 }
           break
         case "-legendScore":
-          sortOption = { legendScore: -1, createdAt: -1 }
+          sortOption = { legendScore: 1, createdAt: -1 }
           break
         case "createdAt":
           sortOption = { createdAt: 1 }
