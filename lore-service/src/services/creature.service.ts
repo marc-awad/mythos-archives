@@ -1,8 +1,43 @@
+// src/services/creature.service.ts
+
 import creatureRepository from "../repositories/creature.repository"
+import testimonyRepository from "../repositories/testimony.repository"
 import { CreateCreatureDto, UpdateCreatureDto } from "../types/creature.types"
 import { ICreature } from "../models/Creature"
+import { TestimonyStatus } from "../types"
 
 export class CreatureService {
+  /**
+   * EVL-1: Calculer le legendScore d'une créature
+   * Formule: legendScore = 1 + (nombreDeTestimoniesValidés / 5)
+   *
+   * @param creatureId - ID de la créature
+   * @returns Le nouveau legendScore calculé
+   */
+  async calculateLegendScore(creatureId: string): Promise<number> {
+    // Compter le nombre de témoignages validés pour cette créature
+    const validatedCount = await testimonyRepository.countByCreatureAndStatus(
+      creatureId,
+      TestimonyStatus.VALIDATED
+    )
+
+    // Appliquer la formule
+    const legendScore = 1 + validatedCount / 5
+
+    return legendScore
+  }
+
+  /**
+   * EVL-1: Mettre à jour automatiquement le legendScore d'une créature
+   * Cette méthode recalcule et sauvegarde le nouveau score
+   *
+   * @param creatureId - ID de la créature à mettre à jour
+   */
+  async updateLegendScore(creatureId: string): Promise<void> {
+    const newScore = await this.calculateLegendScore(creatureId)
+    await creatureRepository.updateLegendScore(creatureId, newScore)
+  }
+
   /**
    * Créer une nouvelle créature
    * Vérifie l'unicité du nom

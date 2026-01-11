@@ -3,7 +3,7 @@ import creatureRepository from "../repositories/creature.repository"
 import { CreateTestimonyDto } from "../types/testimony.types"
 import { ITestimony } from "../models/Testimony"
 import { TestimonyStatus } from "../types"
-
+import creatureService from "./creature.service"
 export class TestimonyService {
   /**
    * LORE-5: Créer un nouveau témoignage
@@ -68,7 +68,6 @@ export class TestimonyService {
     )
 
     // 5. Incrémenter le legend score de la créature
-    await creatureRepository.incrementLegendScore(data.creatureId, 1)
 
     return testimony
   }
@@ -157,6 +156,8 @@ export class TestimonyService {
       throw new Error("Erreur lors de la validation du témoignage")
     }
 
+    await creatureService.updateLegendScore(testimony.creatureId.toString())
+
     return updatedTestimony
   }
 
@@ -188,10 +189,7 @@ export class TestimonyService {
     }
 
     // Décrémenter le legend score de la créature
-    await creatureRepository.incrementLegendScore(
-      testimony.creatureId.toString(),
-      -1
-    )
+    await creatureService.updateLegendScore(testimony.creatureId.toString())
 
     return updatedTestimony
   }

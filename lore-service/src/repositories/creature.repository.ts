@@ -139,6 +139,11 @@ export class CreatureRepository {
     })
   }
 
+  async updateLegendScore(id: string, score: number): Promise<void> {
+    await Creature.findByIdAndUpdate(id, {
+      $set: { legendScore: score },
+    })
+  }
   /**
    * Récupérer les créatures d'un auteur
    */
