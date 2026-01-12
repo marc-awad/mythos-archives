@@ -1,3 +1,32 @@
+## ✨ Mises à jour depuis la présentation intermédiaire
+
+### Niveau 13/20 ✅
+
+- ✅ Calcul automatique du `legendScore` pour chaque créature
+- ✅ Tri des créatures par `legendScore`
+- ✅ Système de réputation complet (+3/-1/+1 bonus)
+- ✅ Promotion automatique USER → EXPERT à 10 points
+
+### Niveau 16/20 ✅
+
+- ✅ **mythology-service** : 3ème microservice avec stats et classification
+- ✅ Classification mythologique par familles
+- ✅ Soft delete des témoignages (`deletedAt`)
+- ✅ Système d'historisation (`ModerationLog`)
+
+### Niveau 18-20/20 ✅
+
+- ✅ Dockerisation complète (Dockerfiles + docker-compose)
+- ✅ Pipeline CI/CD (GitHub Actions)
+- ✅ Correction linting sur tous les microservices
+- ✅ Documentation Swagger/OpenAPI (auth-service + lore-service)
+- ✅ Diagramme d'architecture du système
+- ✅ README détaillé avec instructions
+
+**Niveau atteint : 18-20/20**
+
+---
+
 # Mythos Archives 🐉
 
 Plateforme collaborative de recensement de créatures mythologiques imaginaires où les utilisateurs soumettent des témoignages validés par des experts, créant ainsi un bestiaire évolutif.
