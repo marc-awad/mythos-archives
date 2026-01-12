@@ -1,0 +1,109 @@
+version: "3.8"
+
+services:
+  # Base de données MongoDB pour lore-service
+  mongodb:
+    image: mongo:7.0
+    container_name: mythos-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: mythos_lore
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - mythos-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # Auth Service (SQLite + Prisma)
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: mythos-auth-service
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      JWT_SECRET: mythos_archives_dev_secret_key_2026_change_in_production
+      JWT_EXPIRES_IN: 7d
+      DATABASE_URL: file:./dev.db
+    volumes:
+      # Volume pour persister la base SQLite
+      - auth_db:/app/prisma
+      # Pour le développement, commenter en production
+      - ./auth-service/src:/app/src:ro
+    networks:
+      - mythos-network
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"
+
+  # Lore Service (MongoDB)
+  lore-service:
+    build:
+      context: ./lore-service
+      dockerfile: Dockerfile
+    container_name: mythos-lore-service
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      MONGODB_URI: mongodb://mongodb:27017/mythos_lore
+      JWT_SECRET: mythos_archives_dev_secret_key_2026_change_in_production
+      AUTH_SERVICE_URL: http://auth-service:3001
+    volumes:
+      # Pour le développement, commenter en production
+      - ./lore-service/src:/app/src:ro
+    networks:
+      - mythos-network
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+
+  # Mythology Service
+  mythology-service:
+    build:
+      context: ./mythology-service
+      dockerfile: Dockerfile
+    container_name: mythos-mythology-service
+    restart: unless-stopped
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      LORE_SERVICE_URL: http://lore-service:3002
+      AUTH_SERVICE_URL: http://auth-service:3001
+    volumes:
+      # Pour le développement, commenter en production
+      - ./mythology-service/src:/app/src:ro
+    networks:
+      - mythos-network
+    depends_on:
+      - auth-service
+      - lore-service
+
+networks:
+  mythos-network:
+    driver: bridge
+    name: mythos-network
+
+volumes:
+  mongodb_data:
+    name: mythos-mongodb-data
+  mongodb_config:
+    name: mythos-mongodb-config
+  auth_db:
+    name: mythos-auth-db
