@@ -55,6 +55,8 @@ tags:
     description: Statistiques du bestiaire
   - name: Moderation
     description: Actions de modération
+  - name: Classification
+    description: Classification hiérarchique des créatures
 
 components:
   securitySchemes:
@@ -1075,7 +1077,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/TestimoniesListResponse"
 
-  # ===== MYTHOLOGY SERVICE =====
+    # ===== MYTHOLOGY SERVICE =====
   /mythology/stats:
     get:
       tags: [Mythology]
@@ -1122,7 +1124,7 @@ paths:
       summary: Classification hiérarchique des créatures
       description: |
         Classe automatiquement les créatures par famille mythologique et sous-type.
-        
+
         **Familles supportées:**
         - Nordique (viking, norse, scandinave)
         - Grec (olympe, zeus, hellenique)
@@ -1135,7 +1137,7 @@ paths:
         - Slave (russe, polonais)
         - Inventé (fiction, moderne, original)
         - Unknown (pas d'origine)
-        
+
         **Sous-types détectés:**
         - Dragon, Serpent, Loup, Oiseau, Géant, Esprit, Démon, Fée
       operationId: getClassification
@@ -1220,77 +1222,9 @@ paths:
                     format: date-time
                     example: "2026-01-12T16:30:00.000Z"
 
-# ========== SCHEMAS MYTHOLOGY SERVICE ==========
-components:
-  schemas:
-    # ========== MYTHOLOGY SCHEMAS ==========
-    CreatureStats:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "60f7b3c9e4b0c7a3d4e8f1a2"
-        name:
-          type: string
-          example: "Dragon des Brumes"
-        origin:
-          type: string
-          example: "Folklore nordique imaginaire"
-        legendScore:
-          type: integer
-          example: 15
-        totalTestimonies:
-          type: integer
-          example: 8
-        validatedTestimonies:
-          type: integer
-          example: 5
-        pendingTestimonies:
-          type: integer
-          example: 2
-        rejectedTestimonies:
-          type: integer
-          example: 1
-
-    MythologyStats:
-      type: object
-      properties:
-        totalCreatures:
-          type: integer
-          example: 25
-        averageTestimoniesPerCreature:
-          type: number
-          format: float
-          example: 6.4
-        totalTestimonies:
-          type: integer
-          example: 160
-        totalValidatedTestimonies:
-          type: integer
-          example: 95
-        totalPendingTestimonies:
-          type: integer
-          example: 45
-        totalRejectedTestimonies:
-          type: integer
-          example: 20
-        creatures:
-          type: array
-          items:
-            $ref: "#/components/schemas/CreatureStats"
-
-    MythologyStatsResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: "Statistiques générées avec succès"
-        data:
-          $ref: "#/components/schemas/MythologyStats"
-
+    # ============================================================
+    # PARTIE 3 : À ajouter dans "components: schemas:" (après MythologyStatsResponse)
+    # ============================================================
     # ========== CLASSIFICATION SCHEMAS ==========
     ClassificationFamily:
       type: object
@@ -1337,11 +1271,25 @@ components:
           example: "Folklore nordique imaginaire"
         family:
           type: string
-          enum: [Nordique, Grec, Égyptien, Celtique, Asiatique, Amérindien, Africain, Moyen-Orient, Slave, Inventé, Unknown]
+          enum:
+            [
+              Nordique,
+              Grec,
+              Égyptien,
+              Celtique,
+              Asiatique,
+              Amérindien,
+              Africain,
+              Moyen-Orient,
+              Slave,
+              Inventé,
+              Unknown,
+            ]
           example: "Nordique"
         subtype:
           type: string
-          enum: [Dragon, Serpent, Loup, Oiseau, Géant, Esprit, Démon, Fée, Default]
+          enum:
+            [Dragon, Serpent, Loup, Oiseau, Géant, Esprit, Démon, Fée, Default]
           example: "Dragon"
         legendScore:
           type: integer
@@ -1414,28 +1362,3 @@ components:
           example: "Familles récupérées avec succès"
         data:
           $ref: "#/components/schemas/FamiliesData"
-
-    # ========== GENERIC SCHEMAS ==========
-    SuccessResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: true
-        message:
-          type: string
-          example: "Opération réussie"
-
-    ErrorResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          example: false
-        message:
-          type: string
-          example: "Message d'erreur"
-        error:
-          type: string
-          description: Type d'erreur (optionnel)
-          example: "ValidationError"
