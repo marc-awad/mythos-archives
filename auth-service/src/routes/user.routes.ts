@@ -38,4 +38,6 @@ router.get(
   userController.getUserById
 )
 
+router.patch("/users/:id/reputation", userController.updateReputation)
+
 export default router
