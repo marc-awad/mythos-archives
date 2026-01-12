@@ -1,6 +1,6 @@
 // lore-service/src/types/moderation-log.types.ts
 
-import { ModerationAction, TargetType } from "../models/ModerationLog"
+import { ModerationAction, TargetType } from '../models/ModerationLog';
 
 /**
  * MOD-2: DTO pour créer un log de modération

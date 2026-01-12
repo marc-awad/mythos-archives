@@ -1,5 +1,5 @@
 // lore-service/src/types/index.ts
-import { Request } from "express"
+import { Request } from 'express';
 
 /**
  * Interface représentant un utilisateur
@@ -8,7 +8,7 @@ export interface IUser {
   id: string
   email: string
   username: string
-  role: "USER" | "EXPERT" | "ADMIN"
+  role: 'USER' | 'EXPERT' | 'ADMIN'
   reputation: number
 }
 
@@ -19,7 +19,7 @@ export interface JWTPayload {
   id: string
   email: string
   username: string
-  role: "USER" | "EXPERT" | "ADMIN"
+  role: 'USER' | 'EXPERT' | 'ADMIN'
   iat?: number
   exp?: number
 }
@@ -28,9 +28,9 @@ export interface JWTPayload {
  * Statuts possibles d'un témoignage
  */
 export enum TestimonyStatus {
-  PENDING = "PENDING",
-  VALIDATED = "VALIDATED",
-  REJECTED = "REJECTED",
+  PENDING = 'PENDING',
+  VALIDATED = 'VALIDATED',
+  REJECTED = 'REJECTED',
 }
 
 /**
@@ -47,10 +47,10 @@ export interface AuthRequest extends Request {
  * Actions de modération possibles (MOD-2)
  */
 export enum ModerationAction {
-  VALIDATE = "VALIDATE",
-  REJECT = "REJECT",
-  DELETE = "DELETE",
-  RESTORE = "RESTORE",
+  VALIDATE = 'VALIDATE',
+  REJECT = 'REJECT',
+  DELETE = 'DELETE',
+  RESTORE = 'RESTORE',
 }
 
 /**
@@ -60,7 +60,7 @@ export interface IModerationLog {
   userId: string
   action: ModerationAction
   targetId: string
-  targetType: "testimony" | "creature"
+  targetType: 'testimony' | 'creature'
   timestamp: Date
   reason?: string
 }

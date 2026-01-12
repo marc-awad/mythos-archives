@@ -1,10 +1,10 @@
 // src/services/creature.service.ts
 
-import creatureRepository from "../repositories/creature.repository"
-import testimonyRepository from "../repositories/testimony.repository"
-import { CreateCreatureDto, UpdateCreatureDto } from "../types/creature.types"
-import { ICreature } from "../models/Creature"
-import { TestimonyStatus } from "../types"
+import creatureRepository from '../repositories/creature.repository';
+import testimonyRepository from '../repositories/testimony.repository';
+import { CreateCreatureDto, UpdateCreatureDto } from '../types/creature.types';
+import { ICreature } from '../models/Creature';
+import { TestimonyStatus } from '../types';
 
 export class CreatureService {
   /**
@@ -18,13 +18,13 @@ export class CreatureService {
     // Compter le nombre de témoignages validés pour cette créature
     const validatedCount = await testimonyRepository.countByCreatureAndStatus(
       creatureId,
-      TestimonyStatus.VALIDATED
-    )
+      TestimonyStatus.VALIDATED,
+    );
 
     // Appliquer la formule
-    const legendScore = 1 + validatedCount / 5
+    const legendScore = 1 + validatedCount / 5;
 
-    return legendScore
+    return legendScore;
   }
 
   /**
@@ -34,8 +34,8 @@ export class CreatureService {
    * @param creatureId - ID de la créature à mettre à jour
    */
   async updateLegendScore(creatureId: string): Promise<void> {
-    const newScore = await this.calculateLegendScore(creatureId)
-    await creatureRepository.updateLegendScore(creatureId, newScore)
+    const newScore = await this.calculateLegendScore(creatureId);
+    await creatureRepository.updateLegendScore(creatureId, newScore);
   }
 
   /**
@@ -44,30 +44,30 @@ export class CreatureService {
    */
   async createCreature(
     data: CreateCreatureDto,
-    authorId: string
+    authorId: string,
   ): Promise<ICreature> {
     // Validation: vérifier que le nom n'existe pas déjà
-    const existingCreature = await creatureRepository.existsByName(data.name)
+    const existingCreature = await creatureRepository.existsByName(data.name);
 
     if (existingCreature) {
       throw new Error(
-        `Une créature avec le nom "${data.name}" existe déjà. Veuillez choisir un autre nom.`
-      )
+        `Une créature avec le nom "${data.name}" existe déjà. Veuillez choisir un autre nom.`,
+      );
     }
 
     // Validation: nom minimum 2 caractères
     if (data.name.trim().length < 2) {
-      throw new Error("Le nom doit contenir au moins 2 caractères")
+      throw new Error('Le nom doit contenir au moins 2 caractères');
     }
 
     // Validation: nom maximum 100 caractères
     if (data.name.trim().length > 100) {
-      throw new Error("Le nom ne peut pas dépasser 100 caractères")
+      throw new Error('Le nom ne peut pas dépasser 100 caractères');
     }
 
     // Validation: origin maximum 200 caractères
     if (data.origin && data.origin.trim().length > 200) {
-      throw new Error("L'origine ne peut pas dépasser 200 caractères")
+      throw new Error("L'origine ne peut pas dépasser 200 caractères");
     }
 
     // Créer la créature
@@ -76,10 +76,10 @@ export class CreatureService {
         name: data.name.trim(),
         origin: data.origin?.trim(),
       },
-      authorId
-    )
+      authorId,
+    );
 
-    return creature
+    return creature;
   }
 
   /**
@@ -93,8 +93,8 @@ export class CreatureService {
     authorId?: string
   }) {
     // Validation des paramètres
-    const page = Math.max(1, options.page || 1)
-    const limit = Math.min(100, Math.max(1, options.limit || 10)) // Max 100 items par page
+    const page = Math.max(1, options.page || 1);
+    const limit = Math.min(100, Math.max(1, options.limit || 10)); // Max 100 items par page
 
     return await creatureRepository.findAll({
       page,
@@ -102,7 +102,7 @@ export class CreatureService {
       sort: options.sort,
       search: options.search,
       authorId: options.authorId,
-    })
+    });
   }
 
   /**
@@ -111,16 +111,16 @@ export class CreatureService {
   async getCreatureById(id: string): Promise<ICreature> {
     // Validation: vérifier que l'ID est un ObjectId MongoDB valide
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      throw new Error("ID de créature invalide")
+      throw new Error('ID de créature invalide');
     }
 
-    const creature = await creatureRepository.findById(id)
+    const creature = await creatureRepository.findById(id);
 
     if (!creature) {
-      throw new Error("Créature non trouvée")
+      throw new Error('Créature non trouvée');
     }
 
-    return creature
+    return creature;
   }
 
   /**
@@ -130,35 +130,35 @@ export class CreatureService {
     id: string,
     data: UpdateCreatureDto,
     authorId: string,
-    userRole: string
+    userRole: string,
   ): Promise<ICreature> {
     // Validation: vérifier que l'ID est valide
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      throw new Error("ID de créature invalide")
+      throw new Error('ID de créature invalide');
     }
 
-    const creature = await creatureRepository.findById(id)
+    const creature = await creatureRepository.findById(id);
 
     if (!creature) {
-      throw new Error("Créature non trouvée")
+      throw new Error('Créature non trouvée');
     }
 
     // Vérification des permissions: seul l'auteur ou un ADMIN peut modifier
-    if (creature.authorId !== authorId && userRole !== "ADMIN") {
+    if (creature.authorId !== authorId && userRole !== 'ADMIN') {
       throw new Error(
-        "Vous n'avez pas la permission de modifier cette créature"
-      )
+        "Vous n'avez pas la permission de modifier cette créature",
+      );
     }
 
     // Validation: si le nom change, vérifier l'unicité
     if (data.name && data.name !== creature.name) {
       const existingCreature = await creatureRepository.existsByName(
         data.name,
-        id
-      )
+        id,
+      );
 
       if (existingCreature) {
-        throw new Error(`Une créature avec le nom "${data.name}" existe déjà`)
+        throw new Error(`Une créature avec le nom "${data.name}" existe déjà`);
       }
     }
 
@@ -166,13 +166,13 @@ export class CreatureService {
     const updatedCreature = await creatureRepository.update(id, {
       name: data.name?.trim(),
       origin: data.origin?.trim(),
-    })
+    });
 
     if (!updatedCreature) {
-      throw new Error("Erreur lors de la mise à jour")
+      throw new Error('Erreur lors de la mise à jour');
     }
 
-    return updatedCreature
+    return updatedCreature;
   }
 
   /**
@@ -181,27 +181,27 @@ export class CreatureService {
   async deleteCreature(
     id: string,
     authorId: string,
-    userRole: string
+    userRole: string,
   ): Promise<void> {
     // Validation: vérifier que l'ID est valide
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-      throw new Error("ID de créature invalide")
+      throw new Error('ID de créature invalide');
     }
 
-    const creature = await creatureRepository.findById(id)
+    const creature = await creatureRepository.findById(id);
 
     if (!creature) {
-      throw new Error("Créature non trouvée")
+      throw new Error('Créature non trouvée');
     }
 
     // Vérification des permissions: seul l'auteur ou un ADMIN peut supprimer
-    if (creature.authorId !== authorId && userRole !== "ADMIN") {
+    if (creature.authorId !== authorId && userRole !== 'ADMIN') {
       throw new Error(
-        "Vous n'avez pas la permission de supprimer cette créature"
-      )
+        "Vous n'avez pas la permission de supprimer cette créature",
+      );
     }
 
-    await creatureRepository.delete(id)
+    await creatureRepository.delete(id);
   }
 
   /**
@@ -209,17 +209,17 @@ export class CreatureService {
    */
   async getCreaturesByAuthor(
     authorId: string,
-    limit?: number
+    limit?: number,
   ): Promise<ICreature[]> {
-    return await creatureRepository.findByAuthor(authorId, limit)
+    return await creatureRepository.findByAuthor(authorId, limit);
   }
 
   /**
    * Compter les créatures d'un auteur
    */
   async countCreaturesByAuthor(authorId: string): Promise<number> {
-    return await creatureRepository.countByAuthor(authorId)
+    return await creatureRepository.countByAuthor(authorId);
   }
 }
 
-export default new CreatureService()
+export default new CreatureService();

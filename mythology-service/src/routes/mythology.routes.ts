@@ -1,16 +1,16 @@
 // src/routes/mythology.routes.ts
 
-import { Router } from "express"
-import mythologyController from "../controllers/mythology.controller"
-import AuthMiddleware from "../middlewares/auth.middleware"
+import { Router } from 'express';
+import mythologyController from '../controllers/mythology.controller';
+import AuthMiddleware from '../middlewares/auth.middleware';
 
-const router = Router()
+const router = Router();
 
 /**
  * GET /mythology/stats
  * Récupérer les statistiques du bestiaire
  * Requiert un JWT valide
  */
-router.get("/stats", AuthMiddleware.authenticate, mythologyController.getStats)
+router.get('/stats', AuthMiddleware.authenticate, mythologyController.getStats);
 
-export default router
+export default router;

@@ -1,14 +1,14 @@
 // lore-service/src/routes/testimony.routes.ts
 
-import { Router } from "express"
-import testimonyController from "../controllers/testimony.controller"
+import { Router } from 'express';
+import testimonyController from '../controllers/testimony.controller';
 import {
   authMiddleware,
   requireExpertOrAdmin,
   requireAdmin,
-} from "../middlewares/auth.middleware"
+} from '../middlewares/auth.middleware';
 
-const router = Router()
+const router = Router();
 
 /**
  * LORE-5: POST /testimonies
@@ -26,7 +26,7 @@ const router = Router()
  * - 404: Créature non trouvée
  * - 429: Délai de 5 minutes non respecté
  */
-router.post("/", authMiddleware, testimonyController.createTestimony)
+router.post('/', authMiddleware, testimonyController.createTestimony);
 
 /**
  * GET /testimonies/me
@@ -37,7 +37,7 @@ router.post("/", authMiddleware, testimonyController.createTestimony)
  * - 200: Liste des témoignages
  * - 401: Non authentifié
  */
-router.get("/me", authMiddleware, testimonyController.getMyTestimonies)
+router.get('/me', authMiddleware, testimonyController.getMyTestimonies);
 
 /**
  * GET /testimonies/:id
@@ -48,7 +48,7 @@ router.get("/me", authMiddleware, testimonyController.getMyTestimonies)
  * - 200: Témoignage trouvé
  * - 404: Témoignage non trouvé
  */
-router.get("/:id", testimonyController.getTestimonyById)
+router.get('/:id', testimonyController.getTestimonyById);
 
 /**
  * PUT /testimonies/:id/validate
@@ -66,11 +66,11 @@ router.get("/:id", testimonyController.getTestimonyById)
  * - 404: Témoignage non trouvé
  */
 router.put(
-  "/:id/validate",
+  '/:id/validate',
   authMiddleware,
   requireExpertOrAdmin,
-  testimonyController.validateTestimony
-)
+  testimonyController.validateTestimony,
+);
 
 /**
  * PUT /testimonies/:id/reject
@@ -88,11 +88,11 @@ router.put(
  * - 404: Témoignage non trouvé
  */
 router.put(
-  "/:id/reject",
+  '/:id/reject',
   authMiddleware,
   requireExpertOrAdmin,
-  testimonyController.rejectTestimony
-)
+  testimonyController.rejectTestimony,
+);
 
 /**
  * MOD-1: DELETE /testimonies/:id
@@ -110,11 +110,11 @@ router.put(
  * - 404: Témoignage non trouvé
  */
 router.delete(
-  "/:id",
+  '/:id',
   authMiddleware,
   requireExpertOrAdmin,
-  testimonyController.deleteTestimony
-)
+  testimonyController.deleteTestimony,
+);
 
 /**
  * MOD-1: POST /testimonies/:id/restore
@@ -132,10 +132,10 @@ router.delete(
  * - 404: Témoignage non trouvé
  */
 router.post(
-  "/:id/restore",
+  '/:id/restore',
   authMiddleware,
   requireAdmin,
-  testimonyController.restoreTestimony
-)
+  testimonyController.restoreTestimony,
+);
 
-export default router
+export default router;

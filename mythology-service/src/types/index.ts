@@ -1,6 +1,6 @@
 // src/types/index.ts
 
-import { Request } from "express"
+import { Request } from 'express';
 
 // Extension de Request pour inclure l'utilisateur authentifié
 export interface AuthenticatedRequest extends Request {
@@ -8,7 +8,7 @@ export interface AuthenticatedRequest extends Request {
     id: string
     email: string
     username: string
-    role: "USER" | "EXPERT" | "ADMIN"
+    role: 'USER' | 'EXPERT' | 'ADMIN'
   }
 }
 
@@ -25,9 +25,9 @@ export interface Creature {
 
 // Types pour les témoignages depuis lore-service
 export enum TestimonyStatus {
-  PENDING = "PENDING",
-  VALIDATED = "VALIDATED",
-  REJECTED = "REJECTED",
+  PENDING = 'PENDING',
+  VALIDATED = 'VALIDATED',
+  REJECTED = 'REJECTED',
 }
 
 export interface Testimony {

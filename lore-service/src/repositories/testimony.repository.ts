@@ -1,8 +1,8 @@
 // lore-service/src/repositories/testimony.repository.ts
 
-import Testimony, { ITestimony } from "../models/Testimony"
-import { CreateTestimonyDto } from "../types/testimony.types"
-import { TestimonyStatus } from "../types"
+import Testimony, { ITestimony } from '../models/Testimony';
+import { CreateTestimonyDto } from '../types/testimony.types';
+import { TestimonyStatus } from '../types';
 
 export class TestimonyRepository {
   /**
@@ -10,22 +10,22 @@ export class TestimonyRepository {
    */
   async create(
     data: CreateTestimonyDto,
-    authorId: string
+    authorId: string,
   ): Promise<ITestimony> {
     const testimony = new Testimony({
       creatureId: data.creatureId,
       authorId,
       description: data.description,
       status: TestimonyStatus.PENDING,
-    })
-    return await testimony.save()
+    });
+    return await testimony.save();
   }
 
   /**
    * MOD-1: Trouver un témoignage par ID (exclut les supprimés)
    */
   async findById(id: string): Promise<ITestimony | null> {
-    return await Testimony.findOne({ _id: id, deletedAt: null })
+    return await Testimony.findOne({ _id: id, deletedAt: null });
   }
 
   /**
@@ -33,7 +33,7 @@ export class TestimonyRepository {
    * Utilisé pour la restauration
    */
   async findByIdIncludingDeleted(id: string): Promise<ITestimony | null> {
-    return await Testimony.findById(id)
+    return await Testimony.findById(id);
   }
 
   /**
@@ -42,15 +42,15 @@ export class TestimonyRepository {
    */
   async findByCreatureId(
     creatureId: string,
-    status?: TestimonyStatus
+    status?: TestimonyStatus,
   ): Promise<ITestimony[]> {
-    const filter: any = { creatureId, deletedAt: null }
+    const filter: any = { creatureId, deletedAt: null };
 
     if (status) {
-      filter.status = status
+      filter.status = status;
     }
 
-    return await Testimony.find(filter).sort({ createdAt: -1 })
+    return await Testimony.find(filter).sort({ createdAt: -1 });
   }
 
   /**
@@ -60,16 +60,16 @@ export class TestimonyRepository {
   async findRecentTestimony(
     authorId: string,
     creatureId: string,
-    withinMinutes: number
+    withinMinutes: number,
   ): Promise<ITestimony | null> {
-    const timeLimit = new Date(Date.now() - withinMinutes * 60 * 1000)
+    const timeLimit = new Date(Date.now() - withinMinutes * 60 * 1000);
 
     return await Testimony.findOne({
       authorId,
       creatureId,
       createdAt: { $gte: timeLimit },
       deletedAt: null, // MOD-1: Exclure les supprimés
-    }).sort({ createdAt: -1 })
+    }).sort({ createdAt: -1 });
   }
 
   /**
@@ -78,7 +78,7 @@ export class TestimonyRepository {
   async findByAuthor(authorId: string): Promise<ITestimony[]> {
     return await Testimony.find({ authorId, deletedAt: null }).sort({
       createdAt: -1,
-    })
+    });
   }
 
   /**
@@ -86,15 +86,15 @@ export class TestimonyRepository {
    */
   async countByCreatureAndStatus(
     creatureId: string,
-    status?: TestimonyStatus
+    status?: TestimonyStatus,
   ): Promise<number> {
-    const filter: any = { creatureId, deletedAt: null }
+    const filter: any = { creatureId, deletedAt: null };
 
     if (status) {
-      filter.status = status
+      filter.status = status;
     }
 
-    return await Testimony.countDocuments(filter)
+    return await Testimony.countDocuments(filter);
   }
 
   /**
@@ -103,7 +103,7 @@ export class TestimonyRepository {
   async updateStatus(
     id: string,
     status: TestimonyStatus,
-    validatedBy: string
+    validatedBy: string,
   ): Promise<ITestimony | null> {
     return await Testimony.findByIdAndUpdate(
       id,
@@ -112,8 +112,8 @@ export class TestimonyRepository {
         validatedBy,
         validatedAt: new Date(),
       },
-      { new: true }
-    )
+      { new: true },
+    );
   }
 
   /**
@@ -126,8 +126,8 @@ export class TestimonyRepository {
         deletedAt: new Date(),
         deletedBy,
       },
-      { new: true }
-    )
+      { new: true },
+    );
   }
 
   /**
@@ -140,8 +140,8 @@ export class TestimonyRepository {
         deletedAt: null,
         deletedBy: null,
       },
-      { new: true }
-    )
+      { new: true },
+    );
   }
 
   /**
@@ -149,8 +149,8 @@ export class TestimonyRepository {
    * À utiliser avec précaution - préférer soft delete
    */
   async delete(id: string): Promise<ITestimony | null> {
-    return await Testimony.findByIdAndDelete(id)
+    return await Testimony.findByIdAndDelete(id);
   }
 }
 
-export default new TestimonyRepository()
+export default new TestimonyRepository();

@@ -1,15 +1,15 @@
 // lore-service/src/services/moderation-log.service.ts
 
-import moderationLogRepository from "../repositories/moderation-log.repository"
+import moderationLogRepository from '../repositories/moderation-log.repository';
 import {
   ModerationAction,
   TargetType,
   IModerationLog,
-} from "../models/ModerationLog"
+} from '../models/ModerationLog';
 import {
   CreateModerationLogDto,
   ModerationLogFilters,
-} from "../types/moderation-log.types"
+} from '../types/moderation-log.types';
 
 /**
  * MOD-2: Service pour gérer les logs de modération
@@ -21,13 +21,13 @@ export class ModerationLogService {
    */
   async logAction(data: CreateModerationLogDto): Promise<void> {
     try {
-      await moderationLogRepository.create(data)
+      await moderationLogRepository.create(data);
       console.log(
-        `[ModerationLog] Action logged: ${data.action} by user ${data.userId} on ${data.targetType} ${data.targetId}`
-      )
+        `[ModerationLog] Action logged: ${data.action} by user ${data.userId} on ${data.targetType} ${data.targetId}`,
+      );
     } catch (error) {
       // On ne veut pas bloquer l'opération principale si le logging échoue
-      console.error("[ModerationLog] Failed to log action:", error)
+      console.error('[ModerationLog] Failed to log action:', error);
       // Ne pas throw l'erreur pour ne pas impacter les opérations critiques
     }
   }
@@ -38,7 +38,7 @@ export class ModerationLogService {
   async logValidate(
     userId: string,
     testimonyId: string,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
     await this.logAction({
       userId,
@@ -47,10 +47,10 @@ export class ModerationLogService {
       targetType: TargetType.TESTIMONY,
       metadata: {
         ...metadata,
-        previousStatus: "PENDING",
-        newStatus: "VALIDATED",
+        previousStatus: 'PENDING',
+        newStatus: 'VALIDATED',
       },
-    })
+    });
   }
 
   /**
@@ -59,7 +59,7 @@ export class ModerationLogService {
   async logReject(
     userId: string,
     testimonyId: string,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
     await this.logAction({
       userId,
@@ -68,10 +68,10 @@ export class ModerationLogService {
       targetType: TargetType.TESTIMONY,
       metadata: {
         ...metadata,
-        previousStatus: "PENDING",
-        newStatus: "REJECTED",
+        previousStatus: 'PENDING',
+        newStatus: 'REJECTED',
       },
-    })
+    });
   }
 
   /**
@@ -80,7 +80,7 @@ export class ModerationLogService {
   async logDelete(
     userId: string,
     testimonyId: string,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
     await this.logAction({
       userId,
@@ -88,7 +88,7 @@ export class ModerationLogService {
       targetId: testimonyId,
       targetType: TargetType.TESTIMONY,
       metadata,
-    })
+    });
   }
 
   /**
@@ -97,7 +97,7 @@ export class ModerationLogService {
   async logRestore(
     userId: string,
     testimonyId: string,
-    metadata?: any
+    metadata?: any,
   ): Promise<void> {
     await this.logAction({
       userId,
@@ -105,50 +105,50 @@ export class ModerationLogService {
       targetId: testimonyId,
       targetType: TargetType.TESTIMONY,
       metadata,
-    })
+    });
   }
 
   /**
    * Récupérer tous les logs avec filtres
    */
   async getAllLogs(filters?: ModerationLogFilters): Promise<IModerationLog[]> {
-    return await moderationLogRepository.findAll(filters)
+    return await moderationLogRepository.findAll(filters);
   }
 
   /**
    * Récupérer les logs d'un utilisateur
    */
   async getLogsByUser(userId: string): Promise<IModerationLog[]> {
-    return await moderationLogRepository.findByUser(userId)
+    return await moderationLogRepository.findByUser(userId);
   }
 
   /**
    * Récupérer les logs d'une cible (testimony, creature)
    */
   async getLogsByTarget(targetId: string): Promise<IModerationLog[]> {
-    return await moderationLogRepository.findByTarget(targetId)
+    return await moderationLogRepository.findByTarget(targetId);
   }
 
   /**
    * Récupérer les logs par type d'action
    */
   async getLogsByAction(action: ModerationAction): Promise<IModerationLog[]> {
-    return await moderationLogRepository.findByAction(action)
+    return await moderationLogRepository.findByAction(action);
   }
 
   /**
    * Compter les logs avec filtres
    */
   async countLogs(filters?: ModerationLogFilters): Promise<number> {
-    return await moderationLogRepository.count(filters)
+    return await moderationLogRepository.count(filters);
   }
 
   /**
    * Récupérer les statistiques de modération
    */
   async getStats() {
-    return await moderationLogRepository.getStats()
+    return await moderationLogRepository.getStats();
   }
 }
 
-export default new ModerationLogService()
+export default new ModerationLogService();

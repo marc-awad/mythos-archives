@@ -1,4 +1,4 @@
-import { TestimonyStatus } from "./index"
+import { TestimonyStatus } from './index';
 
 // DTOs pour les témoignages
 export interface CreateTestimonyDto {

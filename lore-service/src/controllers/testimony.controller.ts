@@ -1,9 +1,9 @@
 // lore-service/src/controllers/testimony.controller.ts
 
-import { Request, Response, NextFunction } from "express"
-import testimonyService from "../services/testimony.service"
-import { CreateTestimonyDto } from "../types/testimony.types"
-import { AuthRequest } from "../types"
+import { Request, Response, NextFunction } from 'express';
+import testimonyService from '../services/testimony.service';
+import { CreateTestimonyDto } from '../types/testimony.types';
+import { AuthRequest } from '../types';
 
 export class TestimonyController {
   /**
@@ -14,45 +14,45 @@ export class TestimonyController {
   async createTestimony(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: "Authentification requise",
-        })
-        return
+          message: 'Authentification requise',
+        });
+        return;
       }
 
-      const { creatureId, description } = req.body as CreateTestimonyDto
+      const { creatureId, description } = req.body as CreateTestimonyDto;
 
       // Validation des données
       if (!creatureId) {
         res.status(400).json({
           success: false,
           message: "L'ID de la créature est requis",
-        })
-        return
+        });
+        return;
       }
 
       if (!description || !description.trim()) {
         res.status(400).json({
           success: false,
-          message: "La description est requise",
-        })
-        return
+          message: 'La description est requise',
+        });
+        return;
       }
 
       // Créer le témoignage
       const testimony = await testimonyService.createTestimony(
         { creatureId, description },
-        req.user.id
-      )
+        req.user.id,
+      );
 
       res.status(201).json({
         success: true,
-        message: "Témoignage créé avec succès",
+        message: 'Témoignage créé avec succès',
         data: {
           _id: testimony._id,
           creatureId: testimony.creatureId,
@@ -61,42 +61,42 @@ export class TestimonyController {
           status: testimony.status,
           createdAt: testimony.createdAt,
         },
-      })
+      });
     } catch (error) {
       if (error instanceof Error) {
         // Erreur de créature non trouvée
-        if (error.message === "Créature non trouvée") {
+        if (error.message === 'Créature non trouvée') {
           res.status(404).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
         // Erreur de délai de 5 minutes
-        if (error.message.includes("déjà témoigné")) {
+        if (error.message.includes('déjà témoigné')) {
           res.status(429).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
         // Erreurs de validation
         if (
-          error.message.includes("ID de créature invalide") ||
-          error.message.includes("description") ||
-          error.message.includes("caractères")
+          error.message.includes('ID de créature invalide') ||
+          error.message.includes('description') ||
+          error.message.includes('caractères')
         ) {
           res.status(400).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
       }
 
-      next(error)
+      next(error);
     }
   }
 
@@ -108,24 +108,24 @@ export class TestimonyController {
   async getTestimonyById(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
-      const { id } = req.params
+      const { id } = req.params;
 
       if (!id) {
         res.status(400).json({
           success: false,
-          message: "ID de témoignage requis",
-        })
-        return
+          message: 'ID de témoignage requis',
+        });
+        return;
       }
 
-      const testimony = await testimonyService.getTestimonyById(id)
+      const testimony = await testimonyService.getTestimonyById(id);
 
       res.status(200).json({
         success: true,
-        message: "Témoignage récupéré avec succès",
+        message: 'Témoignage récupéré avec succès',
         data: {
           _id: testimony._id,
           creatureId: testimony.creatureId,
@@ -137,27 +137,27 @@ export class TestimonyController {
           createdAt: testimony.createdAt,
           updatedAt: testimony.updatedAt,
         },
-      })
+      });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé") {
+        if (error.message === 'Témoignage non trouvé') {
           res.status(404).json({
             success: false,
-            message: "Témoignage non trouvé",
-          })
-          return
+            message: 'Témoignage non trouvé',
+          });
+          return;
         }
 
-        if (error.message === "ID de témoignage invalide") {
+        if (error.message === 'ID de témoignage invalide') {
           res.status(400).json({
             success: false,
             message: "Format d'ID invalide",
-          })
-          return
+          });
+          return;
         }
       }
 
-      next(error)
+      next(error);
     }
   }
 
@@ -169,37 +169,37 @@ export class TestimonyController {
   async validateTestimony(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: "Authentification requise",
-        })
-        return
+          message: 'Authentification requise',
+        });
+        return;
       }
 
-      const { id } = req.params
+      const { id } = req.params;
 
       if (!id) {
         res.status(400).json({
           success: false,
-          message: "ID de témoignage requis",
-        })
-        return
+          message: 'ID de témoignage requis',
+        });
+        return;
       }
 
       // EVL-3: Passer le rôle du validateur au service
       const testimony = await testimonyService.validateTestimony(
         id,
         req.user.id,
-        req.user.role
-      )
+        req.user.role,
+      );
 
       res.status(200).json({
         success: true,
-        message: "Témoignage validé avec succès",
+        message: 'Témoignage validé avec succès',
         data: {
           _id: testimony._id,
           creatureId: testimony.creatureId,
@@ -211,48 +211,48 @@ export class TestimonyController {
           createdAt: testimony.createdAt,
           updatedAt: testimony.updatedAt,
         },
-      })
+      });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé") {
+        if (error.message === 'Témoignage non trouvé') {
           res.status(404).json({
             success: false,
-            message: "Témoignage non trouvé",
-          })
-          return
+            message: 'Témoignage non trouvé',
+          });
+          return;
         }
 
         if (
-          error.message === "Vous ne pouvez pas valider votre propre témoignage"
+          error.message === 'Vous ne pouvez pas valider votre propre témoignage'
         ) {
           res.status(403).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
         if (
           error.message ===
-          "Seuls les témoignages en attente peuvent être validés"
+          'Seuls les témoignages en attente peuvent être validés'
         ) {
           res.status(400).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
-        if (error.message === "ID de témoignage invalide") {
+        if (error.message === 'ID de témoignage invalide') {
           res.status(400).json({
             success: false,
             message: "Format d'ID invalide",
-          })
-          return
+          });
+          return;
         }
       }
 
-      next(error)
+      next(error);
     }
   }
 
@@ -264,32 +264,32 @@ export class TestimonyController {
   async rejectTestimony(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: "Authentification requise",
-        })
-        return
+          message: 'Authentification requise',
+        });
+        return;
       }
 
-      const { id } = req.params
+      const { id } = req.params;
 
       if (!id) {
         res.status(400).json({
           success: false,
-          message: "ID de témoignage requis",
-        })
-        return
+          message: 'ID de témoignage requis',
+        });
+        return;
       }
 
-      const testimony = await testimonyService.rejectTestimony(id, req.user.id)
+      const testimony = await testimonyService.rejectTestimony(id, req.user.id);
 
       res.status(200).json({
         success: true,
-        message: "Témoignage rejeté avec succès",
+        message: 'Témoignage rejeté avec succès',
         data: {
           _id: testimony._id,
           creatureId: testimony.creatureId,
@@ -301,48 +301,48 @@ export class TestimonyController {
           createdAt: testimony.createdAt,
           updatedAt: testimony.updatedAt,
         },
-      })
+      });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé") {
+        if (error.message === 'Témoignage non trouvé') {
           res.status(404).json({
             success: false,
-            message: "Témoignage non trouvé",
-          })
-          return
+            message: 'Témoignage non trouvé',
+          });
+          return;
         }
 
         if (
-          error.message === "Vous ne pouvez pas rejeter votre propre témoignage"
+          error.message === 'Vous ne pouvez pas rejeter votre propre témoignage'
         ) {
           res.status(403).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
         if (
           error.message ===
-          "Seuls les témoignages en attente peuvent être rejetés"
+          'Seuls les témoignages en attente peuvent être rejetés'
         ) {
           res.status(400).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
-        if (error.message === "ID de témoignage invalide") {
+        if (error.message === 'ID de témoignage invalide') {
           res.status(400).json({
             success: false,
             message: "Format d'ID invalide",
-          })
-          return
+          });
+          return;
         }
       }
 
-      next(error)
+      next(error);
     }
   }
 
@@ -353,24 +353,24 @@ export class TestimonyController {
   async getMyTestimonies(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: "Authentification requise",
-        })
-        return
+          message: 'Authentification requise',
+        });
+        return;
       }
 
       const testimonies = await testimonyService.getTestimoniesByAuthor(
-        req.user.id
-      )
+        req.user.id,
+      );
 
       res.status(200).json({
         success: true,
-        message: "Témoignages récupérés avec succès",
+        message: 'Témoignages récupérés avec succès',
         data: testimonies.map((t) => ({
           _id: t._id,
           creatureId: t.creatureId,
@@ -383,9 +383,9 @@ export class TestimonyController {
           updatedAt: t.updatedAt,
         })),
         count: testimonies.length,
-      })
+      });
     } catch (error) {
-      next(error)
+      next(error);
     }
   }
 
@@ -396,54 +396,54 @@ export class TestimonyController {
   async deleteTestimony(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: "Authentification requise",
-        })
-        return
+          message: 'Authentification requise',
+        });
+        return;
       }
 
-      const { id } = req.params
+      const { id } = req.params;
 
       if (!id) {
         res.status(400).json({
           success: false,
-          message: "ID de témoignage requis",
-        })
-        return
+          message: 'ID de témoignage requis',
+        });
+        return;
       }
 
-      await testimonyService.softDeleteTestimony(id, req.user.id)
+      await testimonyService.softDeleteTestimony(id, req.user.id);
 
       res.status(200).json({
         success: true,
-        message: "Testimony soft deleted",
+        message: 'Testimony soft deleted',
         id: id,
-      })
+      });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé ou déjà supprimé") {
+        if (error.message === 'Témoignage non trouvé ou déjà supprimé') {
           res.status(404).json({
             success: false,
-            message: "Témoignage non trouvé",
-          })
-          return
+            message: 'Témoignage non trouvé',
+          });
+          return;
         }
 
-        if (error.message === "ID de témoignage invalide") {
+        if (error.message === 'ID de témoignage invalide') {
           res.status(400).json({
             success: false,
             message: "Format d'ID invalide",
-          })
-          return
+          });
+          return;
         }
       }
 
-      next(error)
+      next(error);
     }
   }
 
@@ -454,33 +454,33 @@ export class TestimonyController {
   async restoreTestimony(
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> {
     try {
       if (!req.user) {
         res.status(401).json({
           success: false,
-          message: "Authentification requise",
-        })
-        return
+          message: 'Authentification requise',
+        });
+        return;
       }
 
-      const { id } = req.params
+      const { id } = req.params;
 
       if (!id) {
         res.status(400).json({
           success: false,
-          message: "ID de témoignage requis",
-        })
-        return
+          message: 'ID de témoignage requis',
+        });
+        return;
       }
 
       // ✅ FIX: Ajouter le 2ème argument userId
-      const testimony = await testimonyService.restoreTestimony(id, req.user.id)
+      const testimony = await testimonyService.restoreTestimony(id, req.user.id);
 
       res.status(200).json({
         success: true,
-        message: "Témoignage restauré avec succès",
+        message: 'Témoignage restauré avec succès',
         data: {
           _id: testimony._id,
           creatureId: testimony.creatureId,
@@ -492,37 +492,37 @@ export class TestimonyController {
           createdAt: testimony.createdAt,
           updatedAt: testimony.updatedAt,
         },
-      })
+      });
     } catch (error) {
       if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé") {
+        if (error.message === 'Témoignage non trouvé') {
           res.status(404).json({
             success: false,
-            message: "Témoignage non trouvé",
-          })
-          return
+            message: 'Témoignage non trouvé',
+          });
+          return;
         }
 
         if (error.message === "Ce témoignage n'est pas supprimé") {
           res.status(400).json({
             success: false,
             message: error.message,
-          })
-          return
+          });
+          return;
         }
 
-        if (error.message === "ID de témoignage invalide") {
+        if (error.message === 'ID de témoignage invalide') {
           res.status(400).json({
             success: false,
             message: "Format d'ID invalide",
-          })
-          return
+          });
+          return;
         }
       }
 
-      next(error)
+      next(error);
     }
   }
 }
 
-export default new TestimonyController()
+export default new TestimonyController();

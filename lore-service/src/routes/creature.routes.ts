@@ -1,11 +1,11 @@
-import { Router } from "express"
-import creatureController from "../controllers/creature.controller"
+import { Router } from 'express';
+import creatureController from '../controllers/creature.controller';
 import {
   authMiddleware,
   requireExpertOrAdmin,
-} from "../middlewares/auth.middleware"
+} from '../middlewares/auth.middleware';
 
-const router = Router()
+const router = Router();
 
 /**
  * LORE-4: GET /creatures
@@ -19,7 +19,7 @@ const router = Router()
  * - search: recherche par nom
  * - authorId: filtrer par auteur
  */
-router.get("/", creatureController.getAllCreatures)
+router.get('/', creatureController.getAllCreatures);
 
 /**
  * LORE-4: GET /creatures/:id
@@ -33,7 +33,7 @@ router.get("/", creatureController.getAllCreatures)
  * - 400: ID invalide
  * - 404: Créature non trouvée
  */
-router.get("/:id", creatureController.getCreatureById)
+router.get('/:id', creatureController.getCreatureById);
 
 /**
  * LORE-3: POST /creatures
@@ -52,11 +52,11 @@ router.get("/:id", creatureController.getCreatureById)
  * - 409: Nom déjà existant
  */
 router.post(
-  "/",
+  '/',
   authMiddleware,
   requireExpertOrAdmin,
-  creatureController.createCreature
-)
+  creatureController.createCreature,
+);
 
 /**
  * PUT /creatures/:id
@@ -74,7 +74,7 @@ router.post(
  * - 404: Créature non trouvée
  * - 409: Nom déjà existant
  */
-router.put("/:id", authMiddleware, creatureController.updateCreature)
+router.put('/:id', authMiddleware, creatureController.updateCreature);
 
 /**
  * DELETE /creatures/:id
@@ -86,6 +86,6 @@ router.put("/:id", authMiddleware, creatureController.updateCreature)
  * - 403: Pas la permission (pas l'auteur ni ADMIN)
  * - 404: Créature non trouvée
  */
-router.delete("/:id", authMiddleware, creatureController.deleteCreature)
+router.delete('/:id', authMiddleware, creatureController.deleteCreature);
 
-export default router
+export default router;

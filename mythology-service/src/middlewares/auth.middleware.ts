@@ -1,7 +1,7 @@
 // src/middlewares/auth.middleware.ts
 
-import { Response, NextFunction } from "express"
-import { AuthenticatedRequest } from "../types"
+import { Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types';
 
 export class AuthMiddleware {
   /**
@@ -11,48 +11,48 @@ export class AuthMiddleware {
   static authenticate(
     req: AuthenticatedRequest,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): void {
     try {
-      const authHeader = req.headers.authorization
+      const authHeader = req.headers.authorization;
 
       if (!authHeader) {
         res.status(401).json({
           success: false,
           message: "Token d'authentification manquant",
-        })
-        return
+        });
+        return;
       }
 
-      if (!authHeader.startsWith("Bearer ")) {
+      if (!authHeader.startsWith('Bearer ')) {
         res.status(401).json({
           success: false,
           message: "Format de token invalide. Utilisez 'Bearer <token>'",
-        })
-        return
+        });
+        return;
       }
 
-      const token = authHeader.substring(7)
+      const token = authHeader.substring(7);
 
-      if (!token || token.trim() === "") {
+      if (!token || token.trim() === '') {
         res.status(401).json({
           success: false,
-          message: "Token vide",
-        })
-        return
+          message: 'Token vide',
+        });
+        return;
       }
 
       // On ne décode pas le token ici, il sera validé par lore-service
       // On passe simplement au prochain middleware
-      next()
+      next();
     } catch (error) {
-      console.error("Erreur dans le middleware d'authentification:", error)
+      console.error("Erreur dans le middleware d'authentification:", error);
       res.status(500).json({
         success: false,
-        message: "Erreur lors de la vérification du token",
-      })
+        message: 'Erreur lors de la vérification du token',
+      });
     }
   }
 }
 
-export default AuthMiddleware
+export default AuthMiddleware;

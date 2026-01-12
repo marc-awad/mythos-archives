@@ -1,7 +1,7 @@
-import { PrismaClient, User } from "@prisma/client"
-import { Role } from "../types"
+import { PrismaClient, User } from '@prisma/client';
+import { Role } from '../types';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export class UserRepository {
   // Créer un utilisateur
@@ -18,32 +18,32 @@ export class UserRepository {
         password: data.password,
         role: data.role || Role.USER,
       },
-    })
+    });
   }
 
   // Trouver par email
   async findByEmail(email: string): Promise<User | null> {
     return prisma.user.findUnique({
       where: { email },
-    })
+    });
   }
 
   // Trouver par username
   async findByUsername(username: string): Promise<User | null> {
     return prisma.user.findUnique({
       where: { username },
-    })
+    });
   }
 
   // Trouver par ID
   async findById(id: number): Promise<User | null> {
     return prisma.user.findUnique({
       where: { id },
-    })
+    });
   }
 
   // Récupérer tous les users (sans les passwords)
-  async findAll(): Promise<Omit<User, "password">[]> {
+  async findAll(): Promise<Omit<User, 'password'>[]> {
     return prisma.user.findMany({
       select: {
         id: true,
@@ -54,9 +54,9 @@ export class UserRepository {
         createdAt: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
-    })
+    });
   }
 
   // Mettre à jour le rôle
@@ -64,14 +64,14 @@ export class UserRepository {
     return prisma.user.update({
       where: { id },
       data: { role },
-    })
+    });
   }
 
   // Supprimer un utilisateur
   async delete(id: number): Promise<User> {
     return prisma.user.delete({
       where: { id },
-    })
+    });
   }
 
   // Mettre à jour la réputation
@@ -79,7 +79,7 @@ export class UserRepository {
     return prisma.user.update({
       where: { id },
       data: { reputation },
-    })
+    });
   }
 
   // Incrémenter la réputation (utile pour les témoignages validés)
@@ -91,7 +91,7 @@ export class UserRepository {
           increment: points,
         },
       },
-    })
+    });
   }
 
   // Décrémenter la réputation
@@ -103,16 +103,16 @@ export class UserRepository {
           decrement: points,
         },
       },
-    })
+    });
   }
 
   // Compter les utilisateurs par rôle (utile pour les stats)
   async countByRole(role: Role): Promise<number> {
     return prisma.user.count({
       where: { role },
-    })
+    });
   }
 }
 
 // Export singleton
-export default new UserRepository()
+export default new UserRepository();

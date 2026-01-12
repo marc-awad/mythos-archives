@@ -1,9 +1,9 @@
 // src/server.ts
 
-import app from "./app"
-import config from "./config"
+import app from './app';
+import config from './config';
 
-const PORT = config.port
+const PORT = config.port;
 
 app.listen(PORT, () => {
   console.log(`
@@ -14,7 +14,7 @@ app.listen(PORT, () => {
 ║  Environment: ${config.nodeEnv}        ║
 ║  Lore Service: ${config.loreServiceUrl} ║
 ╚════════════════════════════════════════╝
-  `)
-  console.log(`Stats endpoint: http://localhost:${PORT}/mythology/stats`)
-  console.log(`Health check: http://localhost:${PORT}/health`)
-})
+  `);
+  console.log(`Stats endpoint: http://localhost:${PORT}/mythology/stats`);
+  console.log(`Health check: http://localhost:${PORT}/health`);
+});
