@@ -1,8 +1,11 @@
+// lore-service/src/routes/testimony.routes.ts
+
 import { Router } from "express"
 import testimonyController from "../controllers/testimony.controller"
 import {
   authMiddleware,
   requireExpertOrAdmin,
+  requireAdmin,
 } from "../middlewares/auth.middleware"
 
 const router = Router()
@@ -35,6 +38,17 @@ router.post("/", authMiddleware, testimonyController.createTestimony)
  * - 401: Non authentifié
  */
 router.get("/me", authMiddleware, testimonyController.getMyTestimonies)
+
+/**
+ * GET /testimonies/:id
+ * Récupérer un témoignage par ID
+ * Accessible publiquement
+ *
+ * Réponse:
+ * - 200: Témoignage trouvé
+ * - 404: Témoignage non trouvé
+ */
+router.get("/:id", testimonyController.getTestimonyById)
 
 /**
  * PUT /testimonies/:id/validate
@@ -78,6 +92,50 @@ router.put(
   authMiddleware,
   requireExpertOrAdmin,
   testimonyController.rejectTestimony
+)
+
+/**
+ * MOD-1: DELETE /testimonies/:id
+ * Soft delete d'un témoignage
+ * Accessible par EXPERT et ADMIN uniquement
+ *
+ * Params:
+ * - id: ID MongoDB du témoignage
+ *
+ * Réponse:
+ * - 200: Témoignage supprimé (soft delete)
+ * - 400: Format d'ID invalide
+ * - 401: Non authentifié
+ * - 403: Rôle insuffisant
+ * - 404: Témoignage non trouvé
+ */
+router.delete(
+  "/:id",
+  authMiddleware,
+  requireExpertOrAdmin,
+  testimonyController.deleteTestimony
+)
+
+/**
+ * MOD-1: POST /testimonies/:id/restore
+ * Restaurer un témoignage supprimé
+ * Accessible par ADMIN uniquement
+ *
+ * Params:
+ * - id: ID MongoDB du témoignage
+ *
+ * Réponse:
+ * - 200: Témoignage restauré
+ * - 400: Témoignage pas supprimé ou format d'ID invalide
+ * - 401: Non authentifié
+ * - 403: Rôle insuffisant (ADMIN requis)
+ * - 404: Témoignage non trouvé
+ */
+router.post(
+  "/:id/restore",
+  authMiddleware,
+  requireAdmin,
+  testimonyController.restoreTestimony
 )
 
 export default router

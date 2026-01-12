@@ -387,6 +387,140 @@ export class TestimonyController {
       next(error)
     }
   }
+
+  /**
+   * MOD-1: DELETE /testimonies/:id
+   * Soft delete d'un témoignage (EXPERT/ADMIN uniquement)
+   */
+  async deleteTestimony(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Authentification requise",
+        })
+        return
+      }
+
+      const { id } = req.params
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: "ID de témoignage requis",
+        })
+        return
+      }
+
+      await testimonyService.softDeleteTestimony(id, req.user.id)
+
+      res.status(200).json({
+        success: true,
+        message: "Testimony soft deleted",
+        id: id,
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Témoignage non trouvé ou déjà supprimé") {
+          res.status(404).json({
+            success: false,
+            message: "Témoignage non trouvé",
+          })
+          return
+        }
+
+        if (error.message === "ID de témoignage invalide") {
+          res.status(400).json({
+            success: false,
+            message: "Format d'ID invalide",
+          })
+          return
+        }
+      }
+
+      next(error)
+    }
+  }
+
+  /**
+   * MOD-1: POST /testimonies/:id/restore
+   * Restaurer un témoignage supprimé (ADMIN uniquement)
+   */
+  async restoreTestimony(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Authentification requise",
+        })
+        return
+      }
+
+      const { id } = req.params
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: "ID de témoignage requis",
+        })
+        return
+      }
+
+      const testimony = await testimonyService.restoreTestimony(id)
+
+      res.status(200).json({
+        success: true,
+        message: "Témoignage restauré avec succès",
+        data: {
+          _id: testimony._id,
+          creatureId: testimony.creatureId,
+          authorId: testimony.authorId,
+          description: testimony.description,
+          status: testimony.status,
+          validatedBy: testimony.validatedBy,
+          validatedAt: testimony.validatedAt,
+          createdAt: testimony.createdAt,
+          updatedAt: testimony.updatedAt,
+        },
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Témoignage non trouvé") {
+          res.status(404).json({
+            success: false,
+            message: "Témoignage non trouvé",
+          })
+          return
+        }
+
+        if (error.message === "Ce témoignage n'est pas supprimé") {
+          res.status(400).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (error.message === "ID de témoignage invalide") {
+          res.status(400).json({
+            success: false,
+            message: "Format d'ID invalide",
+          })
+          return
+        }
+      }
+
+      next(error)
+    }
+  }
 }
 
 export default new TestimonyController()

@@ -233,6 +233,97 @@ export class TestimonyService {
 
     return updatedTestimony
   }
+
+  /**
+   * MOD-1: Soft delete d'un témoignage (EXPERT/ADMIN)
+   * - Vérifie que le témoignage existe
+   * - Marque le témoignage comme supprimé
+   * - Recalcule le legendScore de la créature
+   */
+  async softDeleteTestimony(
+    id: string,
+    deletedBy: string
+  ): Promise<ITestimony> {
+    // Validation: vérifier que l'ID est un ObjectId MongoDB valide
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      throw new Error("ID de témoignage invalide")
+    }
+
+    // Vérifier que le témoignage existe et n'est pas déjà supprimé
+    const testimony = await testimonyRepository.findById(id)
+
+    if (!testimony) {
+      throw new Error("Témoignage non trouvé ou déjà supprimé")
+    }
+
+    // Soft delete
+    const deletedTestimony = await testimonyRepository.softDelete(id, deletedBy)
+
+    if (!deletedTestimony) {
+      throw new Error("Erreur lors de la suppression du témoignage")
+    }
+
+    // Recalculer le legendScore de la créature
+    try {
+      await creatureService.updateLegendScore(
+        deletedTestimony.creatureId.toString()
+      )
+    } catch (error) {
+      console.error(
+        "Erreur lors du recalcul du legendScore après suppression:",
+        error
+      )
+      // On ne throw pas pour ne pas annuler la suppression
+    }
+
+    return deletedTestimony
+  }
+
+  /**
+   * MOD-1: Restaurer un témoignage supprimé (ADMIN)
+   * - Vérifie que le témoignage existe et est supprimé
+   * - Restaure le témoignage
+   * - Recalcule le legendScore de la créature
+   */
+  async restoreTestimony(id: string): Promise<ITestimony> {
+    // Validation: vérifier que l'ID est un ObjectId MongoDB valide
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      throw new Error("ID de témoignage invalide")
+    }
+
+    // Vérifier que le témoignage existe et est supprimé
+    const testimony = await testimonyRepository.findByIdIncludingDeleted(id)
+
+    if (!testimony) {
+      throw new Error("Témoignage non trouvé")
+    }
+
+    if (!testimony.deletedAt) {
+      throw new Error("Ce témoignage n'est pas supprimé")
+    }
+
+    // Restaurer
+    const restoredTestimony = await testimonyRepository.restore(id)
+
+    if (!restoredTestimony) {
+      throw new Error("Erreur lors de la restauration du témoignage")
+    }
+
+    // Recalculer le legendScore de la créature
+    try {
+      await creatureService.updateLegendScore(
+        restoredTestimony.creatureId.toString()
+      )
+    } catch (error) {
+      console.error(
+        "Erreur lors du recalcul du legendScore après restauration:",
+        error
+      )
+      // On ne throw pas pour ne pas annuler la restauration
+    }
+
+    return restoredTestimony
+  }
 }
 
 export default new TestimonyService()

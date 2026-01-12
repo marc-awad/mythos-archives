@@ -8,6 +8,7 @@ export interface ITestimony extends Document {
   status: TestimonyStatus
   validatedBy: string | null
   validatedAt: Date | null
+  deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
 }
