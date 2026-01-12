@@ -1,9 +1,13 @@
+// lore-service/src/services/testimony.service.ts
+
 import testimonyRepository from "../repositories/testimony.repository"
 import creatureRepository from "../repositories/creature.repository"
+import creatureService from "./creature.service"
+import { authServiceClient } from "./auth.service"
 import { CreateTestimonyDto } from "../types/testimony.types"
 import { ITestimony } from "../models/Testimony"
 import { TestimonyStatus } from "../types"
-import creatureService from "./creature.service"
+
 export class TestimonyService {
   /**
    * LORE-5: Créer un nouveau témoignage
@@ -67,8 +71,6 @@ export class TestimonyService {
       authorId
     )
 
-    // 5. Incrémenter le legend score de la créature
-
     return testimony
   }
 
@@ -127,13 +129,18 @@ export class TestimonyService {
   }
 
   /**
-   * LORE-7: Valider un témoignage (EXPERT/ADMIN)
+   * LORE-7 + EVL-3: Valider un témoignage (EXPERT/ADMIN)
    * - Vérifier que l'user n'est pas l'auteur
    * - Mettre à jour le statut, validatedBy et validatedAt
+   * - Appliquer les règles de réputation :
+   *   * +3 pour l'auteur du témoignage
+   *   * +1 pour le validateur s'il est EXPERT
+   * - Recalculer le legendScore de la créature
    */
   async validateTestimony(
     id: string,
-    validatedBy: string
+    validatedBy: string,
+    validatorRole: string
   ): Promise<ITestimony> {
     const testimony = await this.getTestimonyById(id)
 
@@ -156,15 +163,36 @@ export class TestimonyService {
       throw new Error("Erreur lors de la validation du témoignage")
     }
 
+    // EVL-1: Recalculer le legendScore après validation
     await creatureService.updateLegendScore(testimony.creatureId.toString())
+
+    // EVL-3: Appliquer les règles de réputation
+    try {
+      // Règle 1: +3 pour l'auteur du témoignage validé
+      await authServiceClient.updateUserReputation(testimony.authorId, 3)
+
+      // Règle 2: +1 pour le validateur s'il est EXPERT
+      if (validatorRole === "EXPERT") {
+        await authServiceClient.updateUserReputation(validatedBy, 1)
+      }
+    } catch (error) {
+      // Log l'erreur mais ne pas bloquer la validation du témoignage
+      console.error(
+        "Erreur lors de la mise à jour de la réputation après validation:",
+        error
+      )
+      // On ne throw pas l'erreur pour ne pas annuler la validation
+    }
 
     return updatedTestimony
   }
 
   /**
-   * LORE-8: Rejeter un témoignage (EXPERT/ADMIN)
+   * LORE-8 + EVL-3: Rejeter un témoignage (EXPERT/ADMIN)
    * - Vérifier que l'user n'est pas l'auteur
    * - Mettre à jour le statut
+   * - Appliquer la règle de réputation : -1 pour l'auteur
+   * - Recalculer le legendScore de la créature
    */
   async rejectTestimony(id: string, rejectedBy: string): Promise<ITestimony> {
     const testimony = await this.getTestimonyById(id)
@@ -188,8 +216,20 @@ export class TestimonyService {
       throw new Error("Erreur lors du rejet du témoignage")
     }
 
-    // Décrémenter le legend score de la créature
+    // EVL-1: Recalculer le legendScore après rejet
     await creatureService.updateLegendScore(testimony.creatureId.toString())
+
+    // EVL-3: Appliquer la règle de réputation : -1 pour l'auteur
+    try {
+      await authServiceClient.updateUserReputation(testimony.authorId, -1)
+    } catch (error) {
+      // Log l'erreur mais ne pas bloquer le rejet du témoignage
+      console.error(
+        "Erreur lors de la mise à jour de la réputation après rejet:",
+        error
+      )
+      // On ne throw pas l'erreur pour ne pas annuler le rejet
+    }
 
     return updatedTestimony
   }

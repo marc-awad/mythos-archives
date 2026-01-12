@@ -1,10 +1,8 @@
+// lore-service/src/controllers/testimony.controller.ts
+
 import { Request, Response, NextFunction } from "express"
 import testimonyService from "../services/testimony.service"
-import {
-  CreateTestimonyDto,
-  GetTestimoniesQuery,
-} from "../types/testimony.types"
-import { TestimonyStatus } from "../types"
+import { CreateTestimonyDto } from "../types/testimony.types"
 
 export class TestimonyController {
   /**
@@ -18,7 +16,6 @@ export class TestimonyController {
     next: NextFunction
   ): Promise<void> {
     try {
-      // Vérifier l'authentification
       if (!req.user) {
         res.status(401).json({
           success: false,
@@ -27,9 +24,9 @@ export class TestimonyController {
         return
       }
 
-      // Validation des données
       const { creatureId, description } = req.body as CreateTestimonyDto
 
+      // Validation des données
       if (!creatureId) {
         res.status(400).json({
           success: false,
@@ -65,7 +62,6 @@ export class TestimonyController {
         },
       })
     } catch (error) {
-      // Gestion des erreurs métier
       if (error instanceof Error) {
         // Erreur de créature non trouvée
         if (error.message === "Créature non trouvée") {
@@ -87,9 +83,9 @@ export class TestimonyController {
 
         // Erreurs de validation
         if (
-          error.message.includes("caractères") ||
-          error.message.includes("requis") ||
-          error.message.includes("invalide")
+          error.message.includes("ID de créature invalide") ||
+          error.message.includes("description") ||
+          error.message.includes("caractères")
         ) {
           res.status(400).json({
             success: false,
@@ -99,90 +95,244 @@ export class TestimonyController {
         }
       }
 
-      // Autres erreurs
       next(error)
     }
   }
 
   /**
-   * LORE-6: GET /creatures/:id/testimonies
-   * Récupérer tous les témoignages d'une créature
-   * Route publique avec filtre optionnel par statut
+   * LORE-6: GET /testimonies/:id
+   * Récupérer un témoignage par son ID
+   * Route publique
    */
-  async getTestimoniesByCreature(
+  async getTestimonyById(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
       const { id } = req.params
-      const query = req.query as GetTestimoniesQuery
 
       if (!id) {
         res.status(400).json({
           success: false,
-          message: "ID de créature requis",
+          message: "ID de témoignage requis",
         })
         return
       }
 
-      // Validation du statut si fourni
-      let status: TestimonyStatus | undefined
+      const testimony = await testimonyService.getTestimonyById(id)
 
-      if (query.status) {
-        const upperStatus = query.status.toUpperCase()
-
-        if (
-          !Object.values(TestimonyStatus).includes(
-            upperStatus as TestimonyStatus
-          )
-        ) {
-          res.status(400).json({
+      res.status(200).json({
+        success: true,
+        message: "Témoignage récupéré avec succès",
+        data: {
+          _id: testimony._id,
+          creatureId: testimony.creatureId,
+          authorId: testimony.authorId,
+          description: testimony.description,
+          status: testimony.status,
+          validatedBy: testimony.validatedBy,
+          validatedAt: testimony.validatedAt,
+          createdAt: testimony.createdAt,
+          updatedAt: testimony.updatedAt,
+        },
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Témoignage non trouvé") {
+          res.status(404).json({
             success: false,
-            message: `Statut invalide. Valeurs acceptées: ${Object.values(
-              TestimonyStatus
-            ).join(", ")}`,
+            message: "Témoignage non trouvé",
           })
           return
         }
 
-        status = upperStatus as TestimonyStatus
+        if (error.message === "ID de témoignage invalide") {
+          res.status(400).json({
+            success: false,
+            message: "Format d'ID invalide",
+          })
+          return
+        }
       }
 
-      // Récupérer les témoignages
-      const testimonies = await testimonyService.getTestimoniesByCreature(
+      next(error)
+    }
+  }
+
+  /**
+   * LORE-7 + EVL-3: POST /testimonies/:id/validate
+   * Valider un témoignage (EXPERT/ADMIN uniquement)
+   * Applique les règles de réputation
+   */
+  async validateTestimony(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Authentification requise",
+        })
+        return
+      }
+
+      const { id } = req.params
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: "ID de témoignage requis",
+        })
+        return
+      }
+
+      // EVL-3: Passer le rôle du validateur au service
+      const testimony = await testimonyService.validateTestimony(
         id,
-        status
+        req.user.id,
+        req.user.role
       )
 
       res.status(200).json({
         success: true,
-        message: "Témoignages récupérés avec succès",
-        data: testimonies.map((t) => ({
-          _id: t._id,
-          creatureId: t.creatureId,
-          authorId: t.authorId,
-          description: t.description,
-          status: t.status,
-          validatedBy: t.validatedBy,
-          validatedAt: t.validatedAt,
-          createdAt: t.createdAt,
-          updatedAt: t.updatedAt,
-        })),
-        count: testimonies.length,
+        message: "Témoignage validé avec succès",
+        data: {
+          _id: testimony._id,
+          creatureId: testimony.creatureId,
+          authorId: testimony.authorId,
+          description: testimony.description,
+          status: testimony.status,
+          validatedBy: testimony.validatedBy,
+          validatedAt: testimony.validatedAt,
+          createdAt: testimony.createdAt,
+          updatedAt: testimony.updatedAt,
+        },
       })
     } catch (error) {
-      // Gestion des erreurs 404
       if (error instanceof Error) {
-        if (error.message === "Créature non trouvée") {
+        if (error.message === "Témoignage non trouvé") {
           res.status(404).json({
             success: false,
-            message: "Créature non trouvée",
+            message: "Témoignage non trouvé",
           })
           return
         }
 
-        if (error.message === "ID de créature invalide") {
+        if (
+          error.message === "Vous ne pouvez pas valider votre propre témoignage"
+        ) {
+          res.status(403).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (
+          error.message ===
+          "Seuls les témoignages en attente peuvent être validés"
+        ) {
+          res.status(400).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (error.message === "ID de témoignage invalide") {
+          res.status(400).json({
+            success: false,
+            message: "Format d'ID invalide",
+          })
+          return
+        }
+      }
+
+      next(error)
+    }
+  }
+
+  /**
+   * LORE-8 + EVL-3: POST /testimonies/:id/reject
+   * Rejeter un témoignage (EXPERT/ADMIN uniquement)
+   * Applique les règles de réputation
+   */
+  async rejectTestimony(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({
+          success: false,
+          message: "Authentification requise",
+        })
+        return
+      }
+
+      const { id } = req.params
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: "ID de témoignage requis",
+        })
+        return
+      }
+
+      const testimony = await testimonyService.rejectTestimony(id, req.user.id)
+
+      res.status(200).json({
+        success: true,
+        message: "Témoignage rejeté avec succès",
+        data: {
+          _id: testimony._id,
+          creatureId: testimony.creatureId,
+          authorId: testimony.authorId,
+          description: testimony.description,
+          status: testimony.status,
+          validatedBy: testimony.validatedBy,
+          validatedAt: testimony.validatedAt,
+          createdAt: testimony.createdAt,
+          updatedAt: testimony.updatedAt,
+        },
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "Témoignage non trouvé") {
+          res.status(404).json({
+            success: false,
+            message: "Témoignage non trouvé",
+          })
+          return
+        }
+
+        if (
+          error.message === "Vous ne pouvez pas rejeter votre propre témoignage"
+        ) {
+          res.status(403).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (
+          error.message ===
+          "Seuls les témoignages en attente peuvent être rejetés"
+        ) {
+          res.status(400).json({
+            success: false,
+            message: error.message,
+          })
+          return
+        }
+
+        if (error.message === "ID de témoignage invalide") {
           res.status(400).json({
             success: false,
             message: "Format d'ID invalide",
@@ -219,168 +369,21 @@ export class TestimonyController {
 
       res.status(200).json({
         success: true,
-        message: "Vos témoignages récupérés avec succès",
-        data: testimonies,
+        message: "Témoignages récupérés avec succès",
+        data: testimonies.map((t) => ({
+          _id: t._id,
+          creatureId: t.creatureId,
+          authorId: t.authorId,
+          description: t.description,
+          status: t.status,
+          validatedBy: t.validatedBy,
+          validatedAt: t.validatedAt,
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        })),
         count: testimonies.length,
       })
     } catch (error) {
-      next(error)
-    }
-  }
-
-  /**
-   * LORE-7: PUT /testimonies/:id/validate
-   * Valider un témoignage (EXPERT/ADMIN uniquement)
-   * - Vérifier que l'user n'est pas l'auteur
-   * - Mettre à jour le statut, validatedBy et validatedAt
-   */
-  async validateTestimony(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          message: "Authentification requise",
-        })
-        return
-      }
-
-      const { id } = req.params
-
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: "ID de témoignage requis",
-        })
-        return
-      }
-
-      const testimony = await testimonyService.validateTestimony(
-        id,
-        req.user.id
-      )
-
-      res.status(200).json({
-        success: true,
-        message: "Témoignage validé avec succès",
-        data: testimony,
-      })
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé") {
-          res.status(404).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-
-        if (error.message.includes("en attente")) {
-          res.status(400).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-
-        // LORE-7: Gestion de l'erreur "propre témoignage"
-        if (error.message.includes("propre témoignage")) {
-          res.status(403).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-
-        if (error.message.includes("invalide")) {
-          res.status(400).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-      }
-
-      next(error)
-    }
-  }
-
-  /**
-   * LORE-8: PUT /testimonies/:id/reject
-   * Rejeter un témoignage (EXPERT/ADMIN uniquement)
-   * - Vérifier que l'user n'est pas l'auteur
-   * - Mettre à jour le statut
-   */
-  async rejectTestimony(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      if (!req.user) {
-        res.status(401).json({
-          success: false,
-          message: "Authentification requise",
-        })
-        return
-      }
-
-      const { id } = req.params
-
-      if (!id) {
-        res.status(400).json({
-          success: false,
-          message: "ID de témoignage requis",
-        })
-        return
-      }
-
-      const testimony = await testimonyService.rejectTestimony(id, req.user.id)
-
-      res.status(200).json({
-        success: true,
-        message: "Témoignage rejeté avec succès",
-        data: testimony,
-      })
-    } catch (error) {
-      if (error instanceof Error) {
-        if (error.message === "Témoignage non trouvé") {
-          res.status(404).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-
-        if (error.message.includes("en attente")) {
-          res.status(400).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-
-        // LORE-8: Gestion de l'erreur "propre témoignage"
-        if (error.message.includes("propre témoignage")) {
-          res.status(403).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-
-        if (error.message.includes("invalide")) {
-          res.status(400).json({
-            success: false,
-            message: error.message,
-          })
-          return
-        }
-      }
-
       next(error)
     }
   }

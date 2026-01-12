@@ -134,6 +134,67 @@ export class AuthServiceClient {
       console.error("Auth Service Request Error:", error.message)
     }
   }
+  /**
+   * EVL-3: Mettre à jour la réputation d'un utilisateur via auth-service
+   * Appelé après validation/rejet de témoignage
+   *
+   * @param userId - ID de l'utilisateur (en string car vient du JWT)
+   * @param reputationChange - Variation de réputation (+3, -1, +1)
+   */
+  async updateUserReputation(
+    userId: string,
+    reputationChange: number
+  ): Promise<void> {
+    try {
+      const response = await this.client.patch(`/users/${userId}/reputation`, {
+        reputationChange,
+      })
+
+      if (!response.data.success) {
+        throw new Error("Échec de la mise à jour de la réputation")
+      }
+
+      // Log pour debug
+      console.log(
+        `✅ Réputation mise à jour pour l'utilisateur ${userId}: ${
+          reputationChange > 0 ? "+" : ""
+        }${reputationChange} points`
+      )
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError<{ message?: string }>
+
+        // Log l'erreur mais ne pas bloquer le processus principal
+        console.error("Erreur lors de la mise à jour de la réputation:", {
+          userId,
+          reputationChange,
+          status: axiosError.response?.status,
+          message: axiosError.response?.data?.message || axiosError.message,
+        })
+
+        // Erreur réseau
+        if (axiosError.code === "ECONNREFUSED") {
+          throw new Error(
+            "Impossible de contacter le service d'authentification pour mettre à jour la réputation"
+          )
+        }
+
+        // Erreur 404 = utilisateur non trouvé
+        if (axiosError.response?.status === 404) {
+          throw new Error(
+            "Utilisateur non trouvé dans le service d'authentification"
+          )
+        }
+
+        throw new Error(
+          axiosError.response?.data?.message ||
+            "Erreur lors de la mise à jour de la réputation"
+        )
+      }
+
+      throw error
+    }
+  }
 }
 
 // Export d'une instance singleton
