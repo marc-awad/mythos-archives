@@ -1,28 +1,26 @@
 // src/routes/index.ts
 
-import { Router, Request, Response } from "express"
+import { Router } from "express"
 import mythologyRoutes from "./mythology.routes"
-import mythologyController from "../controllers/mythology.controller"
+import classificationRoutes from "./classification.routes"
 
 const router = Router()
 
-// Route de santé (pas d'auth requise)
-router.get("/health", mythologyController.healthCheck)
-
-// Routes mythology
-router.use("/mythology", mythologyRoutes)
-
-// Route par défaut
-router.get("/", (req: Request, res: Response) => {
-  res.json({
+/**
+ * Route de santé du service (pas d'auth requise)
+ */
+router.get("/health", (req, res) => {
+  res.status(200).json({
     success: true,
-    message: "Mythology Service API",
-    version: "1.0.0",
-    endpoints: {
-      health: "GET /health",
-      stats: "GET /mythology/stats (JWT required)",
-    },
+    message: "Mythology service is running",
+    timestamp: new Date().toISOString(),
   })
 })
+
+/**
+ * Routes principales
+ */
+router.use("/mythology/stats", mythologyRoutes)
+router.use("/mythology/classification", classificationRoutes)
 
 export default router

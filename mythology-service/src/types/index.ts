@@ -91,3 +91,43 @@ export interface ApiError extends Error {
   statusCode?: number
   code?: string
 }
+
+/**
+ * Structure de classification hiérarchique
+ * Famille → Sous-type → Liste de créatures
+ */
+export interface ClassificationFamily {
+  [subtype: string]: string[] // subtype → noms des créatures
+}
+
+export interface ClassificationResult {
+  families: {
+    [family: string]: ClassificationFamily
+  }
+}
+
+/**
+ * Métadonnées d'une créature classifiée
+ */
+export interface ClassifiedCreature {
+  id: string
+  name: string
+  origin: string
+  family: string
+  subtype: string
+  legendScore: number
+}
+
+/**
+ * Réponse complète du endpoint de classification
+ */
+export interface ClassificationResponse {
+  success: boolean
+  message: string
+  data: {
+    totalCreatures: number
+    totalFamilies: number
+    classification: ClassificationResult
+    details?: ClassifiedCreature[] // Optionnel : détails complets
+  }
+}
