@@ -1,0 +1,1441 @@
+openapi: 3.0.3
+info:
+  title: Mythos Archives API
+  description: |
+    API complète pour Mythos Archives - Une plateforme de catalogage de créatures mythologiques imaginaires.
+
+    ## Architecture Microservices
+
+    - **auth-service** (Port 3001) : Gestion des utilisateurs et authentification JWT
+    - **lore-service** (Port 3002) : Gestion des créatures et témoignages
+    - **mythology-service** (Port 3003) : Statistiques et classifications
+
+    ## Authentification
+
+    L'API utilise JWT (JSON Web Tokens). Pour accéder aux routes protégées :
+    1. Créez un compte avec `/auth/register`
+    2. Connectez-vous avec `/auth/login` pour obtenir un token
+    3. Incluez le token : `Authorization: Bearer <token>`
+
+    ## Rôles Utilisateurs
+
+    - **USER** : Peut créer des témoignages
+    - **EXPERT** : Peut créer des créatures et modérer les témoignages
+    - **ADMIN** : Accès complet
+
+    ## Système de Réputation
+
+    - Témoignage validé par EXPERT : +2 points
+    - Témoignage validé par ADMIN : +5 points
+    - Témoignage rejeté : -1 point
+    - **Promotion automatique à EXPERT à 10+ points**
+
+  version: 1.0.0
+  contact:
+    name: Mythos Archives Team
+
+servers:
+  - url: http://localhost:3001
+    description: Auth Service
+  - url: http://localhost:3002
+    description: Lore Service
+  - url: http://localhost:3003
+    description: Mythology Service
+
+tags:
+  - name: Authentication
+    description: Authentification et profil utilisateur
+  - name: Users
+    description: Gestion des utilisateurs (Admin)
+  - name: Creatures
+    description: Créatures mythologiques
+  - name: Testimonies
+    description: Témoignages de rencontres
+  - name: Mythology
+    description: Statistiques du bestiaire
+  - name: Moderation
+    description: Actions de modération
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtenu via /auth/login
+
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: ID de l'utilisateur
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+
+    CreatureId:
+      name: id
+      in: path
+      required: true
+      description: ID MongoDB de la créature
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{24}$"
+      example: "60f7b3c9e4b0c7a3d4e8f1a2"
+
+    TestimonyId:
+      name: id
+      in: path
+      required: true
+      description: ID MongoDB du témoignage
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{24}$"
+      example: "60f7b3c9e4b0c7a3d4e8f1b1"
+
+  responses:
+    UnauthorizedError:
+      description: Non authentifié ou token invalide
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            missingToken:
+              summary: Token manquant
+              value:
+                success: false
+                message: "Token d'authentification manquant"
+            invalidToken:
+              summary: Token invalide
+              value:
+                success: false
+                message: "Token invalide ou expiré"
+
+    ForbiddenError:
+      description: Permission refusée
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            insufficientRole:
+              summary: Rôle insuffisant
+              value:
+                success: false
+                message: "Accès refusé. Rôle ADMIN requis."
+
+  schemas:
+    # ========== AUTH SCHEMAS ==========
+    RegisterDto:
+      type: object
+      required:
+        - email
+        - username
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Adresse email (format valide requis)
+          example: "john.doe@example.com"
+        username:
+          type: string
+          minLength: 3
+          description: Nom d'utilisateur (min 3 caractères)
+          example: "johndoe"
+        password:
+          type: string
+          minLength: 6
+          format: password
+          description: Mot de passe (min 6 caractères)
+          example: "password123"
+
+    LoginDto:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        password:
+          type: string
+          format: password
+          example: "password123"
+
+    UpdateRoleDto:
+      type: object
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum: [USER, EXPERT, ADMIN]
+          description: Nouveau rôle à attribuer
+          example: "EXPERT"
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        username:
+          type: string
+          example: "johndoe"
+        role:
+          type: string
+          enum: [USER, EXPERT, ADMIN]
+          example: "USER"
+        reputation:
+          type: integer
+          description: Points de réputation (promotion à 10+)
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-12T10:30:00.000Z"
+
+    RegisterResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Utilisateur créé avec succès"
+        data:
+          $ref: "#/components/schemas/User"
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Connexion réussie"
+        data:
+          type: object
+          properties:
+            token:
+              type: string
+              description: JWT valide 7 jours
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            user:
+              $ref: "#/components/schemas/User"
+
+    UserResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Utilisateur récupéré avec succès"
+        data:
+          $ref: "#/components/schemas/User"
+
+    UsersListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Utilisateurs récupérés avec succès"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+
+    # ========== CREATURE SCHEMAS ==========
+    CreateCreatureDto:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Nom unique de la créature
+          example: "Dragon des Brumes"
+        origin:
+          type: string
+          maxLength: 200
+          description: Origine mythologique (optionnel)
+          example: "Folklore nordique imaginaire"
+
+    UpdateCreatureDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          example: "Dragon des Brumes Éternelles"
+        origin:
+          type: string
+          maxLength: 200
+          example: "Folklore nordique imaginaire (révisé)"
+
+    Creature:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: ID MongoDB
+          example: "60f7b3c9e4b0c7a3d4e8f1a2"
+        name:
+          type: string
+          example: "Dragon des Brumes"
+        origin:
+          type: string
+          example: "Folklore nordique imaginaire"
+        legendScore:
+          type: integer
+          minimum: 1
+          description: Score de légende (évolue avec témoignages validés)
+          example: 15
+        authorId:
+          type: string
+          description: ID de l'utilisateur créateur
+          example: "1"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-10T14:20:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-01-12T09:15:00.000Z"
+
+    CreatureResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Créature créée avec succès"
+        data:
+          $ref: "#/components/schemas/Creature"
+
+    CreaturesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Créatures récupérées avec succès"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Creature"
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+              example: 1
+            limit:
+              type: integer
+              example: 10
+            total:
+              type: integer
+              example: 25
+            totalPages:
+              type: integer
+              example: 3
+            hasNextPage:
+              type: boolean
+              example: true
+            hasPrevPage:
+              type: boolean
+              example: false
+
+    # ========== TESTIMONY SCHEMAS ==========
+    CreateTestimonyDto:
+      type: object
+      required:
+        - creatureId
+        - description
+      properties:
+        creatureId:
+          type: string
+          pattern: "^[0-9a-fA-F]{24}$"
+          description: ID MongoDB de la créature
+          example: "60f7b3c9e4b0c7a3d4e8f1a2"
+        description:
+          type: string
+          minLength: 10
+          maxLength: 2000
+          description: Description du témoignage
+          example: "J'ai aperçu cette créature dans les montagnes brumeuses au coucher du soleil..."
+
+    Testimony:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "60f7b3c9e4b0c7a3d4e8f1b1"
+        creatureId:
+          type: string
+          example: "60f7b3c9e4b0c7a3d4e8f1a2"
+        authorId:
+          type: string
+          description: ID de l'auteur du témoignage
+          example: "3"
+        description:
+          type: string
+          example: "J'ai aperçu cette créature dans les montagnes brumeuses..."
+        status:
+          type: string
+          enum: [PENDING, VALIDATED, REJECTED]
+          description: Statut de validation
+          example: "PENDING"
+        validatedBy:
+          type: string
+          nullable: true
+          description: ID de l'expert/admin qui a validé
+          example: "1"
+        validatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: "2026-01-11T16:45:00.000Z"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-11T14:20:00.000Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-01-11T16:45:00.000Z"
+
+    TestimonyResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Témoignage créé avec succès"
+        data:
+          $ref: "#/components/schemas/Testimony"
+
+    TestimoniesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Témoignages récupérés avec succès"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Testimony"
+        count:
+          type: integer
+          description: Nombre total de témoignages
+          example: 5
+
+    # ========== MYTHOLOGY SCHEMAS ==========
+    CreatureStats:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "60f7b3c9e4b0c7a3d4e8f1a2"
+        name:
+          type: string
+          example: "Dragon des Brumes"
+        origin:
+          type: string
+          example: "Folklore nordique imaginaire"
+        legendScore:
+          type: integer
+          example: 15
+        totalTestimonies:
+          type: integer
+          example: 8
+        validatedTestimonies:
+          type: integer
+          example: 5
+        pendingTestimonies:
+          type: integer
+          example: 2
+        rejectedTestimonies:
+          type: integer
+          example: 1
+
+    MythologyStats:
+      type: object
+      properties:
+        totalCreatures:
+          type: integer
+          example: 25
+        averageTestimoniesPerCreature:
+          type: number
+          format: float
+          example: 6.4
+        totalTestimonies:
+          type: integer
+          example: 160
+        totalValidatedTestimonies:
+          type: integer
+          example: 95
+        totalPendingTestimonies:
+          type: integer
+          example: 45
+        totalRejectedTestimonies:
+          type: integer
+          example: 20
+        creatures:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreatureStats"
+
+    MythologyStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Statistiques générées avec succès"
+        data:
+          $ref: "#/components/schemas/MythologyStats"
+
+    # ========== GENERIC SCHEMAS ==========
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Opération réussie"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Message d'erreur"
+        error:
+          type: string
+          description: Type d'erreur (optionnel)
+          example: "ValidationError"
+
+paths:
+  # ===== AUTH SERVICE =====
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Créer un compte
+      description: |
+        **Validations:**
+        - Email: format valide
+        - Username: min 3 caractères
+        - Password: min 6 caractères
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDto"
+      responses:
+        "201":
+          description: Utilisateur créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegisterResponse"
+        "400":
+          description: Données invalides
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emailInvalid:
+                  value:
+                    success: false
+                    message: "Format d'email invalide"
+                passwordShort:
+                  value:
+                    success: false
+                    message: "Le mot de passe doit contenir au moins 6 caractères"
+        "409":
+          description: Email/username déjà utilisé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: Se connecter
+      description: Retourne un JWT valide 7 jours
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginDto"
+      responses:
+        "200":
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Identifiants incorrects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Profil utilisateur
+      operationId: getCurrentUser
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Profil récupéré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /admin/users:
+    get:
+      tags: [Users]
+      summary: Liste tous les utilisateurs (ADMIN)
+      operationId: getAllUsers
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsersListResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: Obtenir un utilisateur
+      operationId: getUserById
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Utilisateur trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          description: Utilisateur non trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Users]
+      summary: Supprimer un utilisateur (ADMIN)
+      description: Un admin ne peut pas supprimer son propre compte
+      operationId: deleteUser
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Utilisateur supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "403":
+          description: Permission refusée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/role:
+    patch:
+      tags: [Users]
+      summary: Modifier le rôle (ADMIN)
+      description: Un admin ne peut pas modifier son propre rôle
+      operationId: updateUserRole
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRoleDto"
+      responses:
+        "200":
+          description: Rôle mis à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          description: Rôle invalide
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users/{id}/reputation:
+    patch:
+      tags: [Users]
+      summary: Mettre à jour la réputation (Interne)
+      description: |
+        Endpoint interne appelé par lore-service.
+        Promotion auto à EXPERT si réputation >= 10.
+      operationId: updateReputation
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reputationChange]
+              properties:
+                reputationChange:
+                  type: integer
+                  minimum: -100
+                  maximum: 100
+                  example: 2
+      responses:
+        "200":
+          description: Réputation mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+
+  # ===== LORE SERVICE - CREATURES =====
+  /creatures:
+    get:
+      tags: [Creatures]
+      summary: Liste des créatures (Public)
+      description: |
+        Pagination et filtres disponibles.
+        **Tri:** legendScore, -legendScore, createdAt, -createdAt, name, -name
+      operationId: getAllCreatures
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              [legendScore, -legendScore, createdAt, -createdAt, name, -name]
+        - name: search
+          in: query
+          description: Recherche par nom
+          schema:
+            type: string
+        - name: authorId
+          in: query
+          description: Filtrer par auteur
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Liste des créatures
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreaturesListResponse"
+    post:
+      tags: [Creatures]
+      summary: Créer une créature (EXPERT/ADMIN)
+      operationId: createCreature
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCreatureDto"
+      responses:
+        "201":
+          description: Créature créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatureResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "409":
+          description: Nom déjà existant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /creatures/{id}:
+    get:
+      tags: [Creatures]
+      summary: Détails d'une créature (Public)
+      operationId: getCreatureById
+      parameters:
+        - $ref: "#/components/parameters/CreatureId"
+      responses:
+        "200":
+          description: Créature trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatureResponse"
+        "404":
+          description: Créature non trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags: [Creatures]
+      summary: Modifier une créature (Auteur/ADMIN)
+      operationId: updateCreature
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CreatureId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCreatureDto"
+      responses:
+        "200":
+          description: Créature mise à jour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatureResponse"
+        "403":
+          description: Permission refusée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags: [Creatures]
+      summary: Supprimer une créature (Auteur/ADMIN)
+      operationId: deleteCreature
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/CreatureId"
+      responses:
+        "200":
+          description: Créature supprimée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /creatures/{id}/testimonies:
+    get:
+      tags: [Creatures]
+      summary: Témoignages d'une créature (Public)
+      operationId: getTestimoniesByCreature
+      parameters:
+        - $ref: "#/components/parameters/CreatureId"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, VALIDATED, REJECTED]
+      responses:
+        "200":
+          description: Liste des témoignages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimoniesListResponse"
+
+  # ===== TESTIMONIES =====
+  /testimonies:
+    post:
+      tags: [Testimonies]
+      summary: Créer un témoignage
+      description: |
+        **Règles:**
+        - Délai 5 min entre 2 témoignages pour la même créature
+        - Description: 10-2000 caractères
+      operationId: createTestimony
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestimonyDto"
+      responses:
+        "201":
+          description: Témoignage créé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimonyResponse"
+        "404":
+          description: Créature non trouvée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          description: Délai 5 min non respecté
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /testimonies/{id}:
+    get:
+      tags: [Testimonies]
+      summary: Détails d'un témoignage (Public)
+      operationId: getTestimonyById
+      parameters:
+        - $ref: "#/components/parameters/TestimonyId"
+      responses:
+        "200":
+          description: Témoignage trouvé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimonyResponse"
+    delete:
+      tags: [Moderation]
+      summary: Supprimer un témoignage (EXPERT/ADMIN)
+      description: Soft delete avec log de modération
+      operationId: deleteTestimony
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TestimonyId"
+      responses:
+        "200":
+          description: Témoignage supprimé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /testimonies/{id}/validate:
+    put:
+      tags: [Testimonies]
+      summary: Valider un témoignage (EXPERT/ADMIN)
+      description: |
+        **Effets:**
+        - Legend score +1
+        - Réputation auteur: +2 (EXPERT) ou +5 (ADMIN)
+        - Log de modération
+      operationId: validateTestimony
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TestimonyId"
+      responses:
+        "200":
+          description: Témoignage validé
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimonyResponse"
+        "403":
+          description: Impossible de valider son propre témoignage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /testimonies/{id}/reject:
+    put:
+      tags: [Testimonies]
+      summary: Rejeter un témoignage (EXPERT/ADMIN)
+      description: |
+        **Effets:**
+        - Réputation auteur: -1
+        - Log de modération
+      operationId: rejectTestimony
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TestimonyId"
+      responses:
+        "200":
+          description: Témoignage rejeté
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimonyResponse"
+
+  /testimonies/{id}/restore:
+    post:
+      tags: [Moderation]
+      summary: Restaurer un témoignage (ADMIN)
+      operationId: restoreTestimony
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/TestimonyId"
+      responses:
+        "200":
+          description: Témoignage restauré
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimonyResponse"
+
+  /testimonies/me:
+    get:
+      tags: [Testimonies]
+      summary: Mes témoignages
+      operationId: getMyTestimonies
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Liste de vos témoignages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestimoniesListResponse"
+
+  # ===== MYTHOLOGY SERVICE =====
+  /mythology/stats:
+    get:
+      tags: [Mythology]
+      summary: Statistiques du bestiaire
+      description: |
+        Génère les statistiques globales:
+        - Nombre total de créatures
+        - Moyenne de témoignages par créature
+        - Stats par créature (témoignages validés/pending/rejetés)
+      operationId: getMythologyStats
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Statistiques générées
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MythologyStatsResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "503":
+          description: Lore service indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: "Le service de bestiaire est temporairement indisponible"
+        "504":
+          description: Timeout
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: "Délai d'attente dépassé lors de la génération des statistiques"
+
+  /mythology/classification:
+    get:
+      tags: [Classification]
+      summary: Classification hiérarchique des créatures
+      description: |
+        Classe automatiquement les créatures par famille mythologique et sous-type.
+        
+        **Familles supportées:**
+        - Nordique (viking, norse, scandinave)
+        - Grec (olympe, zeus, hellenique)
+        - Égyptien (pharaon, nil)
+        - Celtique (irlandais, druidique)
+        - Asiatique (chinois, japonais)
+        - Amérindien (aztèque, maya, inca)
+        - Africain (tribal, subsaharien)
+        - Moyen-Orient (perse, arabe, mesopotamien)
+        - Slave (russe, polonais)
+        - Inventé (fiction, moderne, original)
+        - Unknown (pas d'origine)
+        
+        **Sous-types détectés:**
+        - Dragon, Serpent, Loup, Oiseau, Géant, Esprit, Démon, Fée
+      operationId: getClassification
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: details
+          in: query
+          description: Inclure les détails complets de chaque créature classifiée
+          required: false
+          schema:
+            type: boolean
+            default: false
+          example: true
+      responses:
+        "200":
+          description: Classification générée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassificationResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "503":
+          description: Lore service indisponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                success: false
+                message: "Le service lore n'est pas disponible"
+
+  /mythology/classification/families:
+    get:
+      tags: [Classification]
+      summary: Liste des familles mythologiques
+      description: |
+        Retourne uniquement la liste des familles détectées avec leur distribution.
+        Plus léger que l'endpoint complet `/classification`.
+      operationId: getFamilies
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Familles récupérées
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FamiliesResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "500":
+          description: Erreur serveur
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /mythology/health:
+    get:
+      tags: [Mythology]
+      summary: Health check du service
+      description: Vérifie que le mythology-service fonctionne correctement
+      operationId: healthCheck
+      responses:
+        "200":
+          description: Service opérationnel
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Mythology service is running"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-01-12T16:30:00.000Z"
+
+# ========== SCHEMAS MYTHOLOGY SERVICE ==========
+components:
+  schemas:
+    # ========== MYTHOLOGY SCHEMAS ==========
+    CreatureStats:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "60f7b3c9e4b0c7a3d4e8f1a2"
+        name:
+          type: string
+          example: "Dragon des Brumes"
+        origin:
+          type: string
+          example: "Folklore nordique imaginaire"
+        legendScore:
+          type: integer
+          example: 15
+        totalTestimonies:
+          type: integer
+          example: 8
+        validatedTestimonies:
+          type: integer
+          example: 5
+        pendingTestimonies:
+          type: integer
+          example: 2
+        rejectedTestimonies:
+          type: integer
+          example: 1
+
+    MythologyStats:
+      type: object
+      properties:
+        totalCreatures:
+          type: integer
+          example: 25
+        averageTestimoniesPerCreature:
+          type: number
+          format: float
+          example: 6.4
+        totalTestimonies:
+          type: integer
+          example: 160
+        totalValidatedTestimonies:
+          type: integer
+          example: 95
+        totalPendingTestimonies:
+          type: integer
+          example: 45
+        totalRejectedTestimonies:
+          type: integer
+          example: 20
+        creatures:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreatureStats"
+
+    MythologyStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Statistiques générées avec succès"
+        data:
+          $ref: "#/components/schemas/MythologyStats"
+
+    # ========== CLASSIFICATION SCHEMAS ==========
+    ClassificationFamily:
+      type: object
+      description: Mapping des sous-types vers les noms de créatures
+      additionalProperties:
+        type: array
+        items:
+          type: string
+      example:
+        Dragon: ["Dragon des Brumes", "Wyvern Céleste"]
+        Serpent: ["Hydre de Glace"]
+        Default: ["Créature Sans Type"]
+
+    ClassificationResult:
+      type: object
+      description: Structure hiérarchique Famille → Sous-type → Créatures
+      properties:
+        families:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ClassificationFamily"
+      example:
+        families:
+          Nordique:
+            Dragon: ["Dragon des Brumes"]
+            Loup: ["Fenrir Moderne"]
+          Grec:
+            Serpent: ["Hydre de Lerne Réinventée"]
+          Unknown:
+            Default: ["Créature Mystérieuse"]
+
+    ClassifiedCreature:
+      type: object
+      description: Détails complets d'une créature classifiée
+      properties:
+        id:
+          type: string
+          example: "60f7b3c9e4b0c7a3d4e8f1a2"
+        name:
+          type: string
+          example: "Dragon des Brumes"
+        origin:
+          type: string
+          example: "Folklore nordique imaginaire"
+        family:
+          type: string
+          enum: [Nordique, Grec, Égyptien, Celtique, Asiatique, Amérindien, Africain, Moyen-Orient, Slave, Inventé, Unknown]
+          example: "Nordique"
+        subtype:
+          type: string
+          enum: [Dragon, Serpent, Loup, Oiseau, Géant, Esprit, Démon, Fée, Default]
+          example: "Dragon"
+        legendScore:
+          type: integer
+          example: 15
+
+    FamilyDistribution:
+      type: object
+      description: Nombre de créatures par famille
+      additionalProperties:
+        type: integer
+      example:
+        Nordique: 8
+        Grec: 5
+        Égyptien: 3
+        Unknown: 2
+
+    ClassificationData:
+      type: object
+      properties:
+        totalCreatures:
+          type: integer
+          description: Nombre total de créatures classifiées
+          example: 25
+        totalFamilies:
+          type: integer
+          description: Nombre de familles mythologiques détectées
+          example: 5
+        familyDistribution:
+          $ref: "#/components/schemas/FamilyDistribution"
+        classification:
+          $ref: "#/components/schemas/ClassificationResult"
+        details:
+          type: array
+          description: Détails complets (si ?details=true)
+          items:
+            $ref: "#/components/schemas/ClassifiedCreature"
+
+    ClassificationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Classification générée avec succès"
+        data:
+          $ref: "#/components/schemas/ClassificationData"
+
+    FamiliesData:
+      type: object
+      properties:
+        families:
+          type: array
+          description: Liste des familles mythologiques
+          items:
+            type: string
+          example: ["Nordique", "Grec", "Égyptien", "Celtique", "Unknown"]
+        distribution:
+          $ref: "#/components/schemas/FamilyDistribution"
+
+    FamiliesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Familles récupérées avec succès"
+        data:
+          $ref: "#/components/schemas/FamiliesData"
+
+    # ========== GENERIC SCHEMAS ==========
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Opération réussie"
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Message d'erreur"
+        error:
+          type: string
+          description: Type d'erreur (optionnel)
+          example: "ValidationError"
