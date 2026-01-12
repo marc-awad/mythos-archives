@@ -3,6 +3,7 @@
 import { Request, Response, NextFunction } from "express"
 import testimonyService from "../services/testimony.service"
 import { CreateTestimonyDto } from "../types/testimony.types"
+import { AuthRequest } from "../types"
 
 export class TestimonyController {
   /**
@@ -389,8 +390,8 @@ export class TestimonyController {
   }
 
   /**
-   * MOD-1: DELETE /testimonies/:id
-   * Soft delete d'un témoignage (EXPERT/ADMIN uniquement)
+   * MOD-1 + MOD-2: DELETE /testimonies/:id
+   * Soft delete d'un témoignage (EXPERT/ADMIN)
    */
   async deleteTestimony(
     req: Request,
@@ -447,7 +448,7 @@ export class TestimonyController {
   }
 
   /**
-   * MOD-1: POST /testimonies/:id/restore
+   * MOD-1 + MOD-2: POST /testimonies/:id/restore
    * Restaurer un témoignage supprimé (ADMIN uniquement)
    */
   async restoreTestimony(
@@ -474,7 +475,8 @@ export class TestimonyController {
         return
       }
 
-      const testimony = await testimonyService.restoreTestimony(id)
+      // ✅ FIX: Ajouter le 2ème argument userId
+      const testimony = await testimonyService.restoreTestimony(id, req.user.id)
 
       res.status(200).json({
         success: true,

@@ -1,9 +1,11 @@
 // lore-service/src/services/testimony.service.ts
+// MISE À JOUR MOD-2 : Ajout du logging des actions de modération
 
 import testimonyRepository from "../repositories/testimony.repository"
 import creatureRepository from "../repositories/creature.repository"
 import creatureService from "./creature.service"
 import { authServiceClient } from "./auth.service"
+import moderationLogService from "./moderation-log.service" // 🆕 MOD-2
 import { CreateTestimonyDto } from "../types/testimony.types"
 import { ITestimony } from "../models/Testimony"
 import { TestimonyStatus } from "../types"
@@ -129,13 +131,14 @@ export class TestimonyService {
   }
 
   /**
-   * LORE-7 + EVL-3: Valider un témoignage (EXPERT/ADMIN)
+   * LORE-7 + EVL-3 + MOD-2: Valider un témoignage (EXPERT/ADMIN)
    * - Vérifier que l'user n'est pas l'auteur
    * - Mettre à jour le statut, validatedBy et validatedAt
    * - Appliquer les règles de réputation :
    *   * +3 pour l'auteur du témoignage
    *   * +1 pour le validateur s'il est EXPERT
    * - Recalculer le legendScore de la créature
+   * - 🆕 Logger l'action dans ModerationLog
    */
   async validateTestimony(
     id: string,
@@ -184,15 +187,22 @@ export class TestimonyService {
       // On ne throw pas l'erreur pour ne pas annuler la validation
     }
 
+    // 🆕 MOD-2: Logger l'action de validation
+    await moderationLogService.logValidate(validatedBy, id, {
+      validatorRole,
+      creatureId: testimony.creatureId.toString(),
+    })
+
     return updatedTestimony
   }
 
   /**
-   * LORE-8 + EVL-3: Rejeter un témoignage (EXPERT/ADMIN)
+   * LORE-8 + EVL-3 + MOD-2: Rejeter un témoignage (EXPERT/ADMIN)
    * - Vérifier que l'user n'est pas l'auteur
    * - Mettre à jour le statut
    * - Appliquer la règle de réputation : -1 pour l'auteur
    * - Recalculer le legendScore de la créature
+   * - 🆕 Logger l'action dans ModerationLog
    */
   async rejectTestimony(id: string, rejectedBy: string): Promise<ITestimony> {
     const testimony = await this.getTestimonyById(id)
@@ -231,14 +241,20 @@ export class TestimonyService {
       // On ne throw pas l'erreur pour ne pas annuler le rejet
     }
 
+    // 🆕 MOD-2: Logger l'action de rejet
+    await moderationLogService.logReject(rejectedBy, id, {
+      creatureId: testimony.creatureId.toString(),
+    })
+
     return updatedTestimony
   }
 
   /**
-   * MOD-1: Soft delete d'un témoignage (EXPERT/ADMIN)
+   * MOD-1 + MOD-2: Soft delete d'un témoignage (EXPERT/ADMIN)
    * - Vérifie que le témoignage existe
    * - Marque le témoignage comme supprimé
    * - Recalcule le legendScore de la créature
+   * - 🆕 Logger l'action dans ModerationLog
    */
   async softDeleteTestimony(
     id: string,
@@ -276,16 +292,23 @@ export class TestimonyService {
       // On ne throw pas pour ne pas annuler la suppression
     }
 
+    // 🆕 MOD-2: Logger l'action de suppression
+    await moderationLogService.logDelete(deletedBy, id, {
+      creatureId: deletedTestimony.creatureId.toString(),
+      previousStatus: testimony.status,
+    })
+
     return deletedTestimony
   }
 
   /**
-   * MOD-1: Restaurer un témoignage supprimé (ADMIN)
+   * MOD-1 + MOD-2: Restaurer un témoignage supprimé (ADMIN)
    * - Vérifie que le témoignage existe et est supprimé
    * - Restaure le témoignage
    * - Recalcule le legendScore de la créature
+   * - 🆕 Logger l'action dans ModerationLog
    */
-  async restoreTestimony(id: string): Promise<ITestimony> {
+  async restoreTestimony(id: string, restoredBy: string): Promise<ITestimony> {
     // Validation: vérifier que l'ID est un ObjectId MongoDB valide
     if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       throw new Error("ID de témoignage invalide")
@@ -321,6 +344,11 @@ export class TestimonyService {
       )
       // On ne throw pas pour ne pas annuler la restauration
     }
+
+    // 🆕 MOD-2: Logger l'action de restauration
+    await moderationLogService.logRestore(restoredBy, id, {
+      creatureId: restoredTestimony.creatureId.toString(),
+    })
 
     return restoredTestimony
   }
